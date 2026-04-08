@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#1a6bff">
+  <meta name="description" content="PlanLekcji – aplikacja do układania planu lekcji dla szkoły">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>PlanLekcji</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- TOP BAR -->
+  <header id="topbar">
+    <div class="topbar-logo">Plan<span>Lekcji</span></div>
+    <nav class="topbar-tabs">
+      <button class="topbar-tab active" data-tab="timetable" onclick="switchTab('timetable')">
+        <span class="tab-icon">📅</span> Plan lekcji
+      </button>
+      <button class="topbar-tab" data-tab="data" onclick="switchTab('data')">
+        <span class="tab-icon">📋</span> Dane
+      </button>
+      <button class="topbar-tab" data-tab="stats" onclick="switchTab('stats')">
+        <span class="tab-icon">📊</span> Statystyki
+      </button>
+      <button class="topbar-tab" data-tab="settings" onclick="switchTab('settings')">
+        <span class="tab-icon">⚙️</span> Ustawienia
+      </button>
+    </nav>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="showImportExport()">⇅ Import / Eksport</button>
+      <button class="btn btn-primary" onclick="saveState(); notify('Zapisano','success')">💾 Zapisz</button>
+    </div>
+  </header>
+
+  <!-- LEFT SIDEBAR -->
+  <aside id="sidebar-left">
+    <!-- CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-header" onclick="toggleSection('section-classes')">
+        <span>🏫 Klasy</span>
+        <button class="add-btn" onclick="event.stopPropagation(); addClassModal()" title="Dodaj klasę">+</button>
+      </div>
+      <div class="sidebar-items" id="section-classes">
+        <div id="sidebar-classes">
+          <div style="padding:8px 12px;font-size:11px;color:var(--text3)">Brak klas</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEACHERS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-header" onclick="toggleSection('section-teachers')">
+        <span>👨‍🏫 Nauczyciele</span>
+        <button class="add-btn" onclick="event.stopPropagation(); addTeacherModal()" title="Dodaj nauczyciela">+</button>
+      </div>
+      <div class="sidebar-items" id="section-teachers">
+        <div id="sidebar-teachers">
+          <div style="padding:8px 12px;font-size:11px;color:var(--text3)">Brak nauczycieli</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROOMS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-header" onclick="toggleSection('section-rooms')">
+        <span>🚪 Sale</span>
+        <button class="add-btn" onclick="event.stopPropagation(); addRoomModal()" title="Dodaj salę">+</button>
+      </div>
+      <div class="sidebar-items" id="section-rooms">
+        <div id="sidebar-rooms">
+          <div style="padding:8px 12px;font-size:11px;color:var(--text3)">Brak sal</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main id="main">
+
+    <!-- TIMETABLE PAGE -->
+    <div class="page active" id="page-timetable">
+      <div id="view-header">
+        <span id="view-title" style="font-size:13px;font-weight:600">Plan lekcji</span>
+        <span class="view-meta" id="view-meta"></span>
+        <div class="view-controls">
+          <div id="conflict-indicator"></div>
+          <button class="btn btn-ghost btn-sm" onclick="renderTimetable()" title="Odśwież">↻</button>
+          <button class="btn btn-ghost btn-sm" onclick="if(activeClassId)exportCSV(activeClassId)" title="Eksportuj CSV tej klasy">CSV</button>
+        </div>
+      </div>
+      <div id="timetable-wrapper">
+        <div class="empty-state">
+          <div class="empty-icon">📅</div>
+          <div>Wybierz klasę z lewego panelu, aby zobaczyć jej plan lekcji.</div>
+          <div style="margin-top:8px;font-size:12px;color:var(--text3)">Najpierw dodaj klasy, nauczycieli, sale i przedmioty w zakładce "Dane"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATA PAGE -->
+    <div class="page" id="page-data">
+      <div class="page-toolbar">
+        <div class="tabs" style="border:none;margin:0">
+          <button class="tab-btn data-tab-btn active" data-dtab="classes" onclick="switchDataTab('classes')">Klasy</button>
+          <button class="tab-btn data-tab-btn" data-dtab="teachers" onclick="switchDataTab('teachers')">Nauczyciele</button>
+          <button class="tab-btn data-tab-btn" data-dtab="rooms" onclick="switchDataTab('rooms')">Sale</button>
+          <button class="tab-btn data-tab-btn" data-dtab="subjects" onclick="switchDataTab('subjects')">Przedmioty</button>
+          <button class="tab-btn data-tab-btn" data-dtab="assignments" onclick="switchDataTab('assignments')">Przypisania</button>
+          <button class="tab-btn data-tab-btn" data-dtab="hours" onclick="switchDataTab('hours')">Godziny</button>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" id="data-add-btn" onclick="dataAddAction()">+ Dodaj</button>
+        </div>
+      </div>
+
+      <div class="page-content">
+        <!-- CLASSES -->
+        <div class="data-sub active" id="data-classes">
+          <table class="data-table">
+            <thead><tr><th></th><th>Nazwa</th><th>Poziom</th><th>Uczniowie</th><th>Akcje</th></tr></thead>
+            <tbody id="classes-tbody"><tr><td colspan="5" class="empty-state">Brak klas</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- TEACHERS -->
+        <div class="data-sub" id="data-teachers" style="display:none">
+          <table class="data-table">
+            <thead><tr><th>Imię i nazwisko</th><th>Skrót</th><th>Przedmioty</th><th>Godz.</th><th>Akcje</th></tr></thead>
+            <tbody id="teachers-tbody"><tr><td colspan="5" class="empty-state">Brak nauczycieli</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- ROOMS -->
+        <div class="data-sub" id="data-rooms" style="display:none">
+          <table class="data-table">
+            <thead><tr><th>Nazwa</th><th>Skrót</th><th>Typ</th><th>Pojemność</th><th>Akcje</th></tr></thead>
+            <tbody id="rooms-tbody"><tr><td colspan="5" class="empty-state">Brak sal</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- SUBJECTS -->
+        <div class="data-sub" id="data-subjects" style="display:none">
+          <table class="data-table">
+            <thead><tr><th></th><th>Nazwa</th><th>Skrót</th><th>Akcje</th></tr></thead>
+            <tbody id="subjects-tbody"><tr><td colspan="4" class="empty-state">Brak przedmiotów</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- ASSIGNMENTS -->
+        <div class="data-sub" id="data-assignments" style="display:none">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px;padding:4px 0">
+            Przypisanie łączy klasę z przedmiotem, nauczycielem i salą. Określ ile godzin tygodniowo dany przedmiot ma mieć w danej klasie.
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Klasa</th><th>Przedmiot</th><th>Nauczyciel</th><th>Sala</th><th>Godz/tyg</th><th>Akcje</th></tr></thead>
+            <tbody id="assignments-tbody"><tr><td colspan="6" class="empty-state">Brak przypisań</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- HOURS CONFIG -->
+        <div class="data-sub" id="data-hours" style="display:none">
+          <div id="hours-editor"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS PAGE -->
+    <div class="page" id="page-stats">
+      <div style="padding:16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">
+        Statystyki planu
+      </div>
+      <div class="page-content" id="stats-content">
+        <div class="empty-state">Brak danych do wyświetlenia.</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div style="padding:16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">
+        Ustawienia
+      </div>
+      <div class="page-content" style="max-width:480px">
+        <div class="form-group">
+          <label class="form-label">Nazwa szkoły</label>
+          <input id="setting-school-name" class="form-input" placeholder="Szkoła Podstawowa nr 1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rok szkolny</label>
+          <input id="setting-year" class="form-input" placeholder="2024/2025">
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">Zapisz ustawienia</button>
+
+        <div style="margin-top:32px;padding-top:20px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Strefa niebezpieczna</div>
+          <button class="btn btn-danger" onclick="clearAllData()">🗑 Wyczyść wszystkie dane</button>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">Usuwa wszystkie klasy, nauczycieli, sale, przedmioty i plan lekcji. Tej operacji nie można cofnąć.</div>
+        </div>
+
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text3)">
+            <strong style="color:var(--text2)">PlanLekcji</strong> — aplikacja PWA do układania planów lekcji<br>
+            Działa offline · Dane przechowywane lokalnie · Eksport/Import z Plan-sal
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- RIGHT PANEL: LESSON POOL -->
+  <aside id="sidebar-right">
+    <div class="panel-header">
+      <span>Dostępne lekcje</span>
+      <span style="font-size:10px;color:var(--text3)">przeciągnij na plan</span>
+    </div>
+    <div id="lesson-pool">
+      <div class="empty-state" style="padding:20px;font-size:12px">
+        Wybierz klasę, aby zobaczyć dostępne lekcje.
+      </div>
+    </div>
+  </aside>
+
+</div><!-- #app -->
+
+<!-- MODAL -->
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Modal</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
+      <button class="btn btn-primary" onclick="confirmModal()">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="timetable.js"></script>
+<script src="app.js"></script>
+<script>
+// ─── INLINE HELPERS ────────────────────────────────────────────────────────
+function toggleSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? '' : '';
+}
+
+function dataAddAction() {
+  const actions = {
+    classes: () => addClassModal(),
+    teachers: () => addTeacherModal(),
+    rooms: () => addRoomModal(),
+    subjects: () => addSubjectModal(),
+    assignments: () => addAssignmentModal(),
+    hours: () => addHour(),
+  };
+  (actions[dataSubTab] || (() => {}))();
+}
+
+// Patch switchDataTab to also handle visibility + button label
+const _switchDataTabOrig = window.switchDataTab;
+window.switchDataTab = function(tab) {
+  document.querySelectorAll('.data-sub').forEach(d => {
+    d.style.display = d.id === `data-${tab}` ? '' : 'none';
+  });
+  const labels = { classes:'+ Klasa', teachers:'+ Nauczyciel', rooms:'+ Sala', subjects:'+ Przedmiot', assignments:'+ Przypisanie', hours:'+ Lekcja' };
+  const btn = document.getElementById('data-add-btn');
+  if (btn) btn.textContent = labels[tab] || '+ Dodaj';
+  _switchDataTabOrig(tab);
+};
+</script>
+</body>
+</html>
