@@ -1,3 +1,12 @@
+// Helper: add minutes to time string (HH:MM)
+function addMinutes(time, minutes) {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  const nh = Math.floor(total / 60) % 24;
+  const nm = total % 60;
+  return `${nh.toString().padStart(2,'0')}:${nm.toString().padStart(2,'0')}`;
+}
+
 // ─── DATA STORE ──────────────────────────────────────────────────────────────
 const DB_KEY = 'planlekcji_data';
 

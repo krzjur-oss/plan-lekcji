@@ -269,7 +269,7 @@ function showLessonPicker(classId, day, hour) {
       <td style="color:var(--text2)">${teacher?.name || '—'}</td>
       <td style="color:var(--text2);font-family:var(--mono)">${room?.name || '—'}</td>
       <td><span style="color:${statusColor};font-family:var(--mono)">${placedCount}/${needed}</span></td>
-    </tr>`;
+    <tr>`;
   }).join('');
 
   openModal('Wybierz lekcję', `

@@ -1,3 +1,6 @@
+// Global variables from timetable.js
+/* global activeClassId, activeView, activeViewId, renderTimetable, renderPool, exportCSV, notify */
+
 // ─── APP INITIALIZATION ───────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
@@ -142,7 +145,7 @@ function switchTab(tab) {
 
 // ─── DATA PAGE ────────────────────────────────────────────────────────────────
 function renderDataPage() {
-  // Already rendered via sub-tabs
+  switchDataTab(dataSubTab);
 }
 
 let dataSubTab = 'classes';
@@ -297,6 +300,7 @@ function renderHoursEditor() {
 function updateHour(idx, field, value) {
   appState.hours[idx][field] = value;
   saveState();
+  renderTimetable();
 }
 
 function removeHour(idx) {
@@ -309,7 +313,13 @@ function removeHour(idx) {
 
 function addHour() {
   const last = appState.hours[appState.hours.length - 1];
-  appState.hours.push({ num: appState.hours.length + 1, start: '00:00', end: '00:00' });
+  let start = '08:00', end = '08:45';
+  if (last) {
+    // Dodaj 45 minut do ostatniej godziny (przybliżone)
+    start = last.end;
+    end = addMinutes(last.end, 45);
+  }
+  appState.hours.push({ num: appState.hours.length + 1, start, end });
   saveState();
   renderHoursEditor();
 }
@@ -747,7 +757,11 @@ function readImportFile(file) {
 }
 
 function exportAllCSV() {
+  const count = appState.classes.length;
   appState.classes.forEach(c => exportCSV(c.id));
+  if (count > 0) {
+    notify(`Wyeksportowano ${count} plików CSV (po jednym dla każdej klasy).`, 'success');
+  }
 }
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
