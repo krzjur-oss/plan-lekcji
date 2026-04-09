@@ -209,6 +209,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .empty-state{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px}
 .empty-icon{font-size:36px;margin-bottom:10px}
 .section-heading{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.assign-sort-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 /* ── GRUPY ── */
 .cell-groups{display:flex;gap:2px;height:100%;align-items:stretch;}
 .cell-groups .lesson-card{flex:1;min-width:0;}
@@ -296,6 +297,8 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
       </div>
       <div class="data-sub" id="dsub-assignments">
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;background:#fff;padding:10px 14px;border-radius:var(--r-md);border:1px solid var(--border);box-shadow:var(--shadow)">💡 Przypisanie łączy klasę z przedmiotem, nauczycielem i salą. Określa ile godzin tygodniowo odbywa się dany przedmiot.</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;background:#fff;padding:8px 14px;border-radius:var(--r-md);border:1px solid var(--border);box-shadow:var(--shadow)"><span style="font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap">Sortuj wg:</span><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm assign-sort-btn active" data-sort="class" onclick="assignSortBy='class';renderTableAssignments()">Klasy</button><button class="btn btn-ghost btn-sm assign-sort-btn" data-sort="teacher" onclick="assignSortBy='teacher';renderTableAssignments()">Nauczyciela</button><button class="btn btn-ghost btn-sm assign-sort-btn" data-sort="room" onclick="assignSortBy='room';renderTableAssignments()">Sali</button></div></div>
+        <div style="display:none"</div>
         <table class="data-table"><thead><tr><th>Klasa</th><th>Przedmiot</th><th>Nauczyciel</th><th>Sala</th><th>Grupa</th><th>Połączone</th><th>Godz/tyg</th><th>Umieszczone</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-assignments"><tr class="empty-row"><td colspan="9">Brak przypisań</td></tr></tbody></table>
       </div>
       <div class="data-sub" id="dsub-groups">
@@ -695,7 +698,7 @@ function renderSidebar(){
   // classes
   const sc=document.getElementById('sb-classes');
   if(!S.classes.length){sc.innerHTML='<div class="sb-empty">Brak klas</div>';}
-  else{const lkeys=Object.keys(S.lessons);sc.innerHTML=S.classes.map(c=>{
+  else{const lkeys=Object.keys(S.lessons);sc.innerHTML=alphaSort(S.classes,'name').map(c=>{
     const cnt=lkeys.filter(k=>k.startsWith(c.id+'|')).length;
     return`<div class="sb-item" data-id="${c.id}" onclick="setActiveClass('${c.id}')">
       <span class="sb-dot" style="background:${c.color||'#94a3b8'}"></span>
@@ -707,7 +710,7 @@ function renderSidebar(){
   // teachers
   const st=document.getElementById('sb-teachers');
   if(!S.teachers.length){st.innerHTML='<div class="sb-empty">Brak nauczycieli</div>';}
-  else{const load=teacherLoad();st.innerHTML=S.teachers.map(t=>`
+  else{const load=teacherLoad();st.innerHTML=alphaSort(S.teachers,'name').map(t=>`
     <div class="sb-item" data-id="${t.id}" onclick="setActiveTeacher('${t.id}')">
       <span class="sb-dot" style="background:#7c3aed"></span>
       <span class="sb-label">${esc(t.name)}</span><span class="sb-badge">${load[t.id]||0}h</span>
@@ -718,7 +721,7 @@ function renderSidebar(){
   // rooms
   const sr=document.getElementById('sb-rooms');
   if(!S.rooms.length){sr.innerHTML='<div class="sb-empty">Brak sal</div>';}
-  else{sr.innerHTML=S.rooms.map(r=>`
+  else{sr.innerHTML=alphaSort(S.rooms,'name').map(r=>`
     <div class="sb-item" data-id="${r.id}" onclick="setActiveRoom('${r.id}')">
       <span class="sb-dot" style="background:#0891b2"></span>
       <span class="sb-label">${esc(r.name)}</span>
@@ -753,10 +756,12 @@ function switchDataTab(tab){
 }
 function dataAddAction(){({classes:modalClass,teachers:modalTeacher,rooms:modalRoom,subjects:modalSubject,assignments:modalAssignment,groups:modalSchoolGroup,hours:addHour}[dataSubTab]||function(){})();}
 // TABLE RENDERERS
+const alphaSort=(arr,key)=>[...arr].sort((a,b)=>String(a[key]||'').localeCompare(String(b[key]||''),'pl',{sensitivity:'base'}));
+let assignSortBy='class';
 function renderTableClasses(){
   const tb=document.getElementById('tbody-classes');if(!tb)return;
   if(!S.classes.length){tb.innerHTML='<tr class="empty-row"><td colspan="5">Brak klas. Kliknij + Klasa aby dodać.</td></tr>';return;}
-  tb.innerHTML=S.classes.map(c=>{
+  tb.innerHTML=alphaSort(S.classes,'name').map(c=>{
     const grpNames=(c.groupIds||[]).map(id=>{const g=getSchoolGroup(id);return g?g.name:id;}).join(', ');
     return`<tr>
       <td><span class="color-dot" style="background:${c.color||'#94a3b8'}"></span></td>
@@ -771,7 +776,7 @@ function renderTableTeachers(){
   const tb=document.getElementById('tbody-teachers');if(!tb)return;
   if(!S.teachers.length){tb.innerHTML='<tr class="empty-row"><td colspan="5">Brak nauczycieli.</td></tr>';return;}
   const load=teacherLoad();
-  tb.innerHTML=S.teachers.map(t=>{
+  tb.innerHTML=alphaSort(S.teachers,'name').map(t=>{
     const subjs=(t.subjects||[]).map(id=>{const s=getSubject(id);return s?s.name:id;}).join(', ');
     return`<tr>
       <td style="font-weight:600">${esc(t.name)}</td>
@@ -785,7 +790,7 @@ function renderTableRooms(){
   const tb=document.getElementById('tbody-rooms');if(!tb)return;
   if(!S.rooms.length){tb.innerHTML='<tr class="empty-row"><td colspan="5">Brak sal.</td></tr>';return;}
   const types={classroom:'Sala lekcyjna',lab:'Laboratorium',gym:'Hala/Si\u0142ownia',computer:'Informatyczna',music:'Muzyczna',art:'Plastyczna',other:'Inna'};
-  tb.innerHTML=S.rooms.map(r=>`<tr>
+  tb.innerHTML=alphaSort(S.rooms,'name').map(r=>`<tr>
     <td style="font-weight:600">${esc(r.name)}</td>
     <td style="font-family:var(--mono);color:var(--text2)">${esc(r.short||'—')}</td>
     <td style="color:var(--text2)">${types[r.type]||r.type||'—'}</td>
@@ -796,7 +801,7 @@ function renderTableRooms(){
 function renderTableSubjects(){
   const tb=document.getElementById('tbody-subjects');if(!tb)return;
   if(!S.subjects.length){tb.innerHTML='<tr class="empty-row"><td colspan="4">Brak przedmiotów.</td></tr>';return;}
-  tb.innerHTML=S.subjects.map(s=>`<tr>
+  tb.innerHTML=alphaSort(S.subjects,'name').map(s=>`<tr>
     <td><span class="color-dot" style="background:${s.color||'#94a3b8'}"></span></td>
     <td style="font-weight:600;color:${s.color||'inherit'}">${esc(s.name)}</td>
     <td style="font-family:var(--mono);color:var(--text2)">${esc(s.short||'—')}</td>
@@ -805,9 +810,20 @@ function renderTableSubjects(){
 }
 function renderTableAssignments(){
   const tb=document.getElementById('tbody-assignments');if(!tb)return;
-  if(!S.assignments.length){tb.innerHTML='<tr class="empty-row"><td colspan="7">Brak przypisań. Dodaj aby łączyć klasy z przedmiotami i nauczycielami.</td></tr>';return;}
+  document.querySelectorAll('.assign-sort-btn').forEach(b=>b.classList.toggle('active',b.dataset.sort===assignSortBy));
+  if(!S.assignments.length){tb.innerHTML='<tr class="empty-row"><td colspan="9">Brak przypisań.</td></tr>';return;}
   const pc=placedCount();
-  tb.innerHTML=S.assignments.map(a=>{
+  const sorted=[...S.assignments].sort((a,b)=>{
+    let ka='',kb='';
+    if(assignSortBy==='class'){const ca=getClass(a.classId),cb=getClass(b.classId);ka=ca?ca.name:'';kb=cb?cb.name:'';}
+    else if(assignSortBy==='teacher'){const ta=getTeacher(a.teacherId),tb2=getTeacher(b.teacherId);ka=ta?ta.name:'';kb=tb2?tb2.name:'';}
+    else if(assignSortBy==='room'){const ra=getRoom(a.roomId),rb=getRoom(b.roomId);ka=ra?ra.name:'';kb=rb?rb.name:'';}
+    const r=ka.localeCompare(kb,'pl',{sensitivity:'base'});
+    if(r!==0)return r;
+    const ca=getClass(a.classId),cb=getClass(b.classId);
+    return(ca?ca.name:'').localeCompare(cb?cb.name:'',' pl',{sensitivity:'base'});
+  });
+  tb.innerHTML=sorted.map(a=>{
     const cls=getClass(a.classId),subj=getSubject(a.subjectId),t=getTeacher(a.teacherId),r=getRoom(a.roomId);
     const grp=a.groupId?getSchoolGroup(a.groupId):null;
     const glbl=groupLabel(a);
@@ -1039,7 +1055,7 @@ function modalAssignment(id){
 function renderTableGroups(){
   const tb=document.getElementById('tbody-groups');if(!tb)return;
   if(!S.schoolGroups.length){tb.innerHTML='<tr class="empty-row"><td colspan="4">Brak grup szkolnych. Kliknij + Grupa aby dodać.</td></tr>';return;}
-  tb.innerHTML=S.schoolGroups.map(g=>{
+  tb.innerHTML=alphaSort(S.schoolGroups,'name').map(g=>{
     // Zbierz klasy używające tej grupy
     const usedIn=S.classes.filter(c=>(c.groupIds||[]).includes(g.id)).map(c=>c.name).join(', ');
     return`<tr>
