@@ -1,0 +1,49 @@
+═══════════════════════════════════════════════════════
+  PlanLekcji – Instrukcja uruchomienia i instalacji
+═══════════════════════════════════════════════════════
+
+⚠ WAŻNE: Aplikacja NIE działa po otwarciu pliku
+  bezpośrednio (dwuklik na index.html).
+  Musi być uruchomiona przez lokalny serwer HTTP.
+
+──────────────────────────────────────────────────────
+  JAK URUCHOMIĆ (wymagany Python 3):
+──────────────────────────────────────────────────────
+
+  Windows:
+    Dwuklik na plik START.bat
+    (lub: python server.py w cmd)
+
+  Mac / Linux:
+    Dwuklik na START.sh
+    (lub: python3 server.py w terminalu)
+
+  Aplikacja otworzy się automatycznie pod adresem:
+    http://localhost:8765
+
+──────────────────────────────────────────────────────
+  JAK ZAINSTALOWAĆ W CHROME (po uruchomieniu serwera):
+──────────────────────────────────────────────────────
+
+  1. Otwórz http://localhost:8765 w Chrome
+  2. W pasku adresu po prawej stronie pojawi się ikona ⊕
+     lub kliknij menu (⋮) → "Zainstaluj PlanLekcji..."
+  3. Kliknij "Zainstaluj"
+  4. Aplikacja pojawi się na pulpicie/w menu Start
+
+  Możesz też użyć Chrome DevTools:
+    F12 → Application → Manifest → "Add to homescreen"
+
+──────────────────────────────────────────────────────
+  DLACZEGO POTRZEBNY SERWER?
+──────────────────────────────────────────────────────
+
+  Przeglądarki blokują Service Workery (potrzebne do
+  działania offline i instalacji PWA) gdy aplikacja
+  jest otwierana bezpośrednio z dysku (protokół file://).
+  Lokalny serwer HTTP rozwiązuje ten problem.
+
+  Alternatywnie możesz zainstalować rozszerzenie Chrome
+  "Web Server for Chrome" i wskazać mu ten folder.
+
+══════════════════════════════════════════════════════
