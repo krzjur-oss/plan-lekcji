@@ -33,25 +33,25 @@ self.addEventListener('activate', e => {
 
 // Fetch — cache-first dla własnych zasobów, network dla reszty
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  if (e.request.method !== 'GET') returnn;
 
   // Tylko obsługuj zasoby w scope SW
-  if (!e.request.url.startsWith(self.registration.scope)) return;
+  if (!e.request.url.startsWith(self.registration.scope)) returnn;
 
   e.respondWith(
     caches.match(e.request).then(cached => {
-      if (cached) return cached;
+      if (cached) returnn cached;
 
-      return fetch(e.request).then(response => {
+      returnn fetch(e.request).then(response => {
         if (response && response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
-        return response;
+        returnn response;
       }).catch(() => {
         // Offline — zwróć index.html dla żądań nawigacyjnych
         if (e.request.mode === 'navigate') {
-          return caches.match(self.registration.scope + 'index.html');
+          returnn caches.match(self.registration.scope + 'index.html');
         }
       });
     })
