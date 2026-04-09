@@ -209,6 +209,13 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .empty-state{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px}
 .empty-icon{font-size:36px;margin-bottom:10px}
 .section-heading{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+/* ── GRUPY ── */
+.cell-groups{display:flex;gap:2px;height:100%;align-items:stretch;}
+.cell-groups .lesson-card{flex:1;min-width:0;}
+.lc-group{font-size:9px;font-weight:700;letter-spacing:.04em;padding:1px 4px;border-radius:2px;margin-bottom:2px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.group-chip{display:inline-flex;align-items:center;padding:1px 7px;border-radius:3px;font-size:11px;font-weight:600;border:1.5px solid currentColor;background:transparent;}
+.form-checkbox{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);cursor:pointer;padding:3px 0;}
+.form-checkbox input{width:14px;height:14px;cursor:pointer;accent-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -269,13 +276,14 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
         <button class="tab-btn" data-dtab="rooms" onclick="switchDataTab('rooms')">Sale</button>
         <button class="tab-btn" data-dtab="subjects" onclick="switchDataTab('subjects')">Przedmioty</button>
         <button class="tab-btn" data-dtab="assignments" onclick="switchDataTab('assignments')">Przypisania</button>
+        <button class="tab-btn" data-dtab="groups" onclick="switchDataTab('groups')">Grupy</button>
         <button class="tab-btn" data-dtab="hours" onclick="switchDataTab('hours')">Godziny</button>
       </div>
       <button class="btn btn-primary btn-sm" id="data-add-btn" onclick="dataAddAction()">+ Klasa</button>
     </div>
     <div class="page-content">
       <div class="data-sub show" id="dsub-classes">
-        <table class="data-table"><thead><tr><th style="width:28px"></th><th>Nazwa klasy</th><th>Poziom</th><th>Uczniowie</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-classes"><tr class="empty-row"><td colspan="5">Brak klas</td></tr></tbody></table>
+        <table class="data-table"><thead><tr><th style="width:28px"></th><th>Nazwa klasy</th><th>Poziom</th><th>Uczniowie</th><th>Grupy klasy</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-classes"><tr class="empty-row"><td colspan="5">Brak klas</td></tr></tbody></table>
       </div>
       <div class="data-sub" id="dsub-teachers">
         <table class="data-table"><thead><tr><th>Imię i nazwisko</th><th>Skrót</th><th>Przedmioty</th><th>Godz/tyg</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-teachers"><tr class="empty-row"><td colspan="5">Brak nauczycieli</td></tr></tbody></table>
@@ -288,7 +296,16 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
       </div>
       <div class="data-sub" id="dsub-assignments">
         <div style="font-size:12px;color:var(--text2);margin-bottom:10px;background:#fff;padding:10px 14px;border-radius:var(--r-md);border:1px solid var(--border);box-shadow:var(--shadow)">💡 Przypisanie łączy klasę z przedmiotem, nauczycielem i salą. Określa ile godzin tygodniowo odbywa się dany przedmiot.</div>
-        <table class="data-table"><thead><tr><th>Klasa</th><th>Przedmiot</th><th>Nauczyciel</th><th>Sala</th><th>Godz/tyg</th><th>Umieszczone</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-assignments"><tr class="empty-row"><td colspan="7">Brak przypisań</td></tr></tbody></table>
+        <table class="data-table"><thead><tr><th>Klasa</th><th>Przedmiot</th><th>Nauczyciel</th><th>Sala</th><th>Grupa</th><th>Połączone</th><th>Godz/tyg</th><th>Umieszczone</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-assignments"><tr class="empty-row"><td colspan="9">Brak przypisań</td></tr></tbody></table>
+      </div>
+      <div class="data-sub" id="dsub-groups">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;background:#fff;padding:10px 14px;border-radius:var(--r-md);border:1px solid var(--border);box-shadow:var(--shadow)">
+          💡 Grupy szkolne to katalog dostępny dla całej szkoły (np. gr.1, gr.2, chłopcy, j.ang-A). Przypisujesz je do klas w edycji klasy, a do lekcji w przypisaniach.
+        </div>
+        <table class="data-table">
+          <thead><tr><th style="width:28px"></th><th>Nazwa grupy</th><th>Używana w klasach</th><th style="width:140px">Akcje</th></tr></thead>
+          <tbody id="tbody-groups"></tbody>
+        </table>
       </div>
       <div class="data-sub" id="dsub-hours">
         <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:16px;box-shadow:var(--shadow);max-width:380px">
@@ -360,8 +377,10 @@ const DEFAULT_HOURS=[
 let S={
   meta:{schoolName:'',year:'2024/2025'},
   hours:JSON.parse(JSON.stringify(DEFAULT_HOURS)),
-  classes:[],teachers:[],rooms:[],subjects:[],assignments:[],
-  lessons:{}
+  classes:[],teachers:[],rooms:[],subjects:[],
+  schoolGroups:[],  // katalog grup szkolnych: {id,name,color}
+  assignments:[],   // groupId:null|id, linkedGroupIds:[]
+  lessons:{}        // key classId|day|hour -> {assignmentId} OR dla grup: classId|day|hour|groupId
 };
 // ═══ PERSISTENCE ═══
 function saveState(){S.meta.modifiedAt=new Date().toISOString();try{localStorage.setItem(DB_KEY,JSON.stringify(S));}catch(e){console.warn(e);}}
@@ -374,18 +393,68 @@ const getTeacher=id=>byId(S.teachers,id);
 const getRoom=id=>byId(S.rooms,id);
 const getSubject=id=>byId(S.subjects,id);
 const getAssign=id=>byId(S.assignments,id);
-function lkey(c,d,h){return c+'|'+d+'|'+h;}
-function getLesson(c,d,h){return S.lessons[lkey(c,d,h)]||null;}
-function setLesson(c,d,h,aid){const k=lkey(c,d,h);if(aid===null)delete S.lessons[k];else S.lessons[k]={assignmentId:aid,locked:false};saveState();}
+const getSchoolGroup=id=>byId(S.schoolGroups,id);
+// Grupy przypisane do danej klasy (z jej assignments groupId)
+function classGroupIds(classId){
+  const ids=new Set();
+  S.assignments.filter(a=>a.classId===classId&&a.groupId).forEach(a=>ids.add(a.groupId));
+  return [...ids];
+}
+// Etykieta grupy z opcjonalnie połączonymi grupami z innych klas
+function groupLabel(a){
+  if(!a.groupId)return '';
+  const g=getSchoolGroup(a.groupId);
+  let lbl=g?g.name:'?';
+  if(a.linkedGroupIds&&a.linkedGroupIds.length){
+    const linked=a.linkedGroupIds.map(lid=>{
+      // lid = "classId:groupId"
+      const[lcid,lgid]=lid.split(':');
+      const lc=getClass(lcid),lg=getSchoolGroup(lgid);
+      return(lc?lc.name:'?')+'/'+(lg?lg.name:'?');
+    });
+    lbl+='+'+linked.join('+');
+  }
+  return lbl;
+}
+// Klucz lekcji — dla grup dodajemy groupId żeby wiele grup mogło być w tej samej godzinie
+function lkey(c,d,h,groupId){
+  return groupId?c+'|'+d+'|'+h+'|'+groupId:c+'|'+d+'|'+h;
+}
+function getLesson(c,d,h,groupId){return S.lessons[lkey(c,d,h,groupId)]||null;}
+function setLesson(c,d,h,aid,groupId){
+  const k=lkey(c,d,h,groupId);
+  if(aid===null)delete S.lessons[k];
+  else S.lessons[k]={assignmentId:aid,locked:false};
+  saveState();
+}
+// Zwraca WSZYSTKIE lekcje dla danej klasy/dnia/godziny (może być wiele przy grupach)
+function getLessonsAt(c,d,h){
+  const prefix=c+'|'+d+'|'+h;
+  return Object.entries(S.lessons)
+    .filter(([k])=>k===prefix||k.startsWith(prefix+'|'))
+    .map(([k,v])=>({key:k,groupId:k.split('|')[3]||null,...v}));
+}
 function placedCount(){const m={};for(const l of Object.values(S.lessons))m[l.assignmentId]=(m[l.assignmentId]||0)+1;return m;}
 function teacherLoad(){const m={};for(const l of Object.values(S.lessons)){const a=getAssign(l.assignmentId);if(a&&a.teacherId)m[a.teacherId]=(m[a.teacherId]||0)+1;}return m;}
 function detectConflicts(){
   const seen={},conf=new Set();
   for(const[k,l]of Object.entries(S.lessons)){
-    const[cid,d,h]=k.split('|');const a=getAssign(l.assignmentId);if(!a)continue;
+    const parts=k.split('|');const d=parts[1],h=parts[2];
+    const a=getAssign(l.assignmentId);if(!a)continue;
     const sl=d+'|'+h;
+    // Konflikt nauczyciela
     if(a.teacherId){const tk='t|'+a.teacherId+'|'+sl;if(seen[tk]){conf.add(k);conf.add(seen[tk]);}else seen[tk]=k;}
+    // Konflikt sali
     if(a.roomId){const rk='r|'+a.roomId+'|'+sl;if(seen[rk]){conf.add(k);conf.add(seen[rk]);}else seen[rk]=k;}
+    // Konflikt grupy — ta sama grupa (schoolGroup) nie może być w dwóch miejscach naraz
+    if(a.groupId){const gk='g|'+a.groupId+'|'+sl;if(seen[gk]){conf.add(k);conf.add(seen[gk]);}else seen[gk]=k;}
+    // Konflikt klas połączonych przez linkedGroupIds
+    if(a.groupId&&a.linkedGroupIds&&a.linkedGroupIds.length){
+      a.linkedGroupIds.forEach(lid=>{
+        const lgk='g|'+lid.split(':')[1]+'|'+sl;
+        if(seen[lgk]){conf.add(k);conf.add(seen[lgk]);}else seen[lgk]=k;
+      });
+    }
   }
   return conf;
 }
@@ -399,8 +468,21 @@ function renderTimetable(){
   if(activeView==='class'){
     if(!activeClassId){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div>Wybierz klasę z lewego panelu</div>';updateHeader();renderPool();return;}
     wrap.innerHTML='';wrap.appendChild(buildTable((d,h)=>{
-      const l=getLesson(activeClassId,d,h);if(!l)return null;
-      return buildCard(getAssign(l.assignmentId),l,lkey(activeClassId,d,h),conf.has(lkey(activeClassId,d,h)));
+      const lessons=getLessonsAt(activeClassId,d,h);
+      if(!lessons.length)return null;
+      // Jedna lekcja (cała klasa lub jedna grupa) — zwykła karta
+      if(lessons.length===1){
+        const l=lessons[0];
+        return buildCard(getAssign(l.assignmentId),l,l.key,conf.has(l.key));
+      }
+      // Wiele grup w tej samej godzinie — kontener z wieloma kartami
+      const wrap2=document.createElement('div');
+      wrap2.className='cell-groups';
+      lessons.forEach(l=>{
+        const card=buildCard(getAssign(l.assignmentId),l,l.key,conf.has(l.key));
+        if(card)wrap2.appendChild(card);
+      });
+      return wrap2;
     },activeClassId,'class'));
     attachDrop(wrap,activeClassId);
   }else if(activeView==='teacher'){
@@ -443,7 +525,9 @@ function buildCard(assign,lesson,key,isConf,extra){
   const sname=subj?(subj.short||subj.name):'?';
   const tname=teacher?(teacher.short||teacher.name.split(' ').pop()):'';
   const rname=room?room.name:'';
+  const glabel=groupLabel(assign);
   div.innerHTML=
+    (glabel?'<div class="lc-group" style="background:'+color+';color:#fff">'+esc(glabel)+'</div>':'')+
     '<div class="lc-subject" style="color:'+color+'">'+(extra?'<small style="color:var(--text3);font-weight:400">['+esc(extra)+'] </small>':'')+esc(sname)+'</div>'+
     (tname?'<div class="lc-teacher" style="color:var(--text2)">'+esc(tname)+'</div>':'')+
     (rname?'<div class="lc-room" style="color:var(--text3)">'+esc(rname)+'</div>':'')+
@@ -469,7 +553,9 @@ function attachDrop(wrap,classId){
         if(existing){S.lessons[dragData.fromKey]={...existing};}
         else{delete S.lessons[dragData.fromKey];}
       }
-      setLesson(classId,d,h,dragData.assignId);dragData=null;
+      const dropAssign=getAssign(dragData.assignId);
+      const dropGroupId=dropAssign&&dropAssign.groupId?dropAssign.groupId:null;
+      setLesson(classId,d,h,dragData.assignId,dropGroupId);dragData=null;
       renderTimetable();renderSidebar();notify('Lekcja umieszczona','success');
     });
   });
@@ -481,20 +567,30 @@ function openPicker(classId,day,hour){
   const rows=assigns.map(a=>{
     const subj=getSubject(a.subjectId),t=getTeacher(a.teacherId),r=getRoom(a.roomId);
     const p=pc[a.id]||0,n=a.hoursPerWeek||0,col=p>=n?'var(--green)':'var(--accent)';
+    const grp=a.groupId?getSchoolGroup(a.groupId):null;
+    const glbl=groupLabel(a);
     return`<tr class="picker-row" onclick="pickLesson('${classId}',${day},${hour},'${a.id}')">
       <td><span class="color-dot" style="background:${subj&&subj.color?subj.color:'#94a3b8'}"></span></td>
       <td style="font-weight:600;color:${subj&&subj.color?subj.color:'inherit'}">${esc(subj?subj.name:'?')}</td>
       <td style="color:var(--text2)">${esc(t?t.name:'—')}</td>
       <td style="color:var(--text2);font-family:var(--mono)">${esc(r?r.name:'—')}</td>
+      <td>${glbl?'<span class="group-chip">'+esc(glbl)+'</span>':'<span style="color:var(--text3)">cała klasa</span>'}</td>
       <td style="color:${col};font-family:var(--mono);font-weight:600">${p}/${n}</td>
     </tr>`;
   }).join('');
   openModal('Wybierz lekcję',
     `<div style="font-size:12px;color:var(--text3);margin-bottom:10px">${esc(cls?cls.name:'')} \u00b7 ${DAYS[day]} \u00b7 lekcja ${h?h.num:''} (${h?h.start+'\u2013'+h.end:''})</div>
-    <table class="data-table" style="min-width:380px"><thead><tr><th></th><th>Przedmiot</th><th>Nauczyciel</th><th>Sala</th><th>Godz.</th></tr></thead><tbody>${rows}</tbody></table>`,
+    <table class="data-table" style="min-width:440px"><thead><tr><th></th><th>Przedmiot</th><th>Nauczyciel</th><th>Sala</th><th>Grupa</th><th>Godz.</th></tr></thead><tbody>${rows}</tbody></table>`,
     null,false);
 }
-window.pickLesson=function(cid,d,h,aid){setLesson(cid,+d,+h,aid);closeModal();renderTimetable();renderSidebar();};
+window.buildGroupOpts=function(classId,selId){const cls=getClass(classId);const grpIds=cls?(cls.groupIds||[]):[];const opts='<option value="">cała klasa</option>'+grpIds.map(gid=>{const g=getSchoolGroup(gid);return g?`<option value="${g.id}">${esc(g.name)}</option>`:""}).join("");const el=document.getElementById(selId);if(el)el.innerHTML=opts;};
+window.buildLinkedOpts=function(){const selCls=document.getElementById("fa-cls");const selGrp=document.getElementById("fa-grp");if(!selCls||!selGrp)return;const curClassId=selCls.value,curGroupId=selGrp.value;const wrap=document.getElementById("fa-linked-wrap");if(!wrap)return;if(!curGroupId){wrap.style.display="none";return;}wrap.style.display="";const curGroup=getSchoolGroup(curGroupId);const rows=S.classes.filter(c=>c.id!==curClassId&&(c.groupIds||[]).includes(curGroupId)).map(c=>{const lid=c.id+":"+curGroupId;return`<label class="form-checkbox"><input type="checkbox" class="fa-linked-cb" value="${lid}"><span>${esc(c.name)} / ${esc(curGroup?curGroup.name:"?")}</span></label>`;});document.getElementById("fa-linked-list").innerHTML=rows.length?rows.join(""):"<span style=\"color:var(--text3);font-size:11px\">Brak innych klas z tą grupą</span>";};
+window.pickLesson=function(cid,d,h,aid){
+  const a=getAssign(aid);
+  const groupId=a&&a.groupId?a.groupId:null;
+  setLesson(cid,+d,+h,aid,groupId);
+  closeModal();renderTimetable();renderSidebar();
+};
 function renderPool(){
   const pool=document.getElementById('lesson-pool');if(!pool)return;
   if(activeView!=='class'||!activeClassId){pool.innerHTML='<div class="pool-empty">Wybierz klasę aby zobaczyć lekcje</div>';return;}
@@ -587,7 +683,7 @@ function installPWA() {
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  loadState();renderAll();switchDataTab('classes');renderHours();applySettings();
+  loadState();if(!S.schoolGroups)S.schoolGroups=[];renderAll();switchDataTab('classes');renderHours();applySettings();
   if(S.classes.length)setActiveClass(S.classes[0].id);
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setInterval(saveState,30000);
@@ -641,7 +737,7 @@ function switchTab(tab){
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+tab));
   if(tab==='stats')renderStats();if(tab==='settings')applySettings();
 }
-const ADD_LABELS={classes:'+ Klasa',teachers:'+ Nauczyciel',rooms:'+ Sala',subjects:'+ Przedmiot',assignments:'+ Przypisanie',hours:'+ Lekcja'};
+const ADD_LABELS={classes:'+ Klasa',teachers:'+ Nauczyciel',rooms:'+ Sala',subjects:'+ Przedmiot',assignments:'+ Przypisanie',groups:'+ Grupa',hours:'+ Lekcja'};
 function switchDataTab(tab){
   dataSubTab=tab;
   document.querySelectorAll('.tab-btn[data-dtab]').forEach(b=>b.classList.toggle('active',b.dataset.dtab===tab));
@@ -652,20 +748,24 @@ function switchDataTab(tab){
   else if(tab==='rooms')renderTableRooms();
   else if(tab==='subjects')renderTableSubjects();
   else if(tab==='assignments')renderTableAssignments();
+  else if(tab==='groups')renderTableGroups();
   else if(tab==='hours')renderHours();
 }
-function dataAddAction(){({classes:modalClass,teachers:modalTeacher,rooms:modalRoom,subjects:modalSubject,assignments:modalAssignment,hours:addHour}[dataSubTab]||function(){})();}
+function dataAddAction(){({classes:modalClass,teachers:modalTeacher,rooms:modalRoom,subjects:modalSubject,assignments:modalAssignment,groups:modalSchoolGroup,hours:addHour}[dataSubTab]||function(){})();}
 // TABLE RENDERERS
 function renderTableClasses(){
   const tb=document.getElementById('tbody-classes');if(!tb)return;
   if(!S.classes.length){tb.innerHTML='<tr class="empty-row"><td colspan="5">Brak klas. Kliknij + Klasa aby dodać.</td></tr>';return;}
-  tb.innerHTML=S.classes.map(c=>`<tr>
-    <td><span class="color-dot" style="background:${c.color||'#94a3b8'}"></span></td>
-    <td style="font-weight:600">${esc(c.name)}</td>
-    <td style="color:var(--text2)">${c.year||'—'}</td>
-    <td style="color:var(--text2)">${c.students||'—'}</td>
-    <td><div class="td-actions"><button class="btn btn-ghost btn-sm" onclick="modalClass('${c.id}')">Edytuj</button><button class="btn btn-danger btn-sm" onclick="deleteClass('${c.id}')">Usuń</button></div></td>
-  </tr>`).join('');
+  tb.innerHTML=S.classes.map(c=>{
+    const grpNames=(c.groupIds||[]).map(id=>{const g=getSchoolGroup(id);return g?g.name:id;}).join(', ');
+    return`<tr>
+      <td><span class="color-dot" style="background:${c.color||'#94a3b8'}"></span></td>
+      <td style="font-weight:600">${esc(c.name)}</td>
+      <td style="color:var(--text2)">${c.year||'—'}</td>
+      <td style="color:var(--text2)">${c.students||'—'}</td>
+      <td style="font-size:11.5px;color:var(--text2)">${grpNames||'<span style="color:var(--text3)">brak grup</span>'}</td>
+      <td><div class="td-actions"><button class="btn btn-ghost btn-sm" onclick="modalClass('${c.id}')">Edytuj</button><button class="btn btn-danger btn-sm" onclick="deleteClass('${c.id}')">Usuń</button></div></td>
+    </tr>`;}).join('');
 }
 function renderTableTeachers(){
   const tb=document.getElementById('tbody-teachers');if(!tb)return;
@@ -709,6 +809,8 @@ function renderTableAssignments(){
   const pc=placedCount();
   tb.innerHTML=S.assignments.map(a=>{
     const cls=getClass(a.classId),subj=getSubject(a.subjectId),t=getTeacher(a.teacherId),r=getRoom(a.roomId);
+    const grp=a.groupId?getSchoolGroup(a.groupId):null;
+    const glbl=groupLabel(a);
     const p=pc[a.id]||0,n=a.hoursPerWeek||0;
     const col=p>=n?'var(--green)':p>0?'var(--yellow)':'var(--text3)';
     return`<tr>
@@ -716,6 +818,8 @@ function renderTableAssignments(){
       <td style="font-weight:600;color:${subj&&subj.color?subj.color:'inherit'}">${esc(subj?subj.name:'?')}</td>
       <td style="color:var(--text2)">${esc(t?t.name:'—')}</td>
       <td style="font-family:var(--mono);color:var(--text2)">${esc(r?r.name:'—')}</td>
+      <td>${grp?'<span class="group-chip">'+esc(grp.name)+'</span>':'<span style="color:var(--text3);font-size:11px">cała klasa</span>'}</td>
+      <td style="font-size:11px;color:var(--text2)">${(a.linkedGroupIds&&a.linkedGroupIds.length)?a.linkedGroupIds.map(lid=>{const[lc,lg]=lid.split(':');const cc=getClass(lc),gg=getSchoolGroup(lg);return(cc?cc.name:'?')+'/'+(gg?gg.name:'?');}).join(', '):'—'}</td>
       <td style="font-family:var(--mono);font-weight:600">${n}</td>
       <td style="font-family:var(--mono);color:${col};font-weight:600">${p}/${n}</td>
       <td><div class="td-actions"><button class="btn btn-ghost btn-sm" onclick="modalAssignment('${a.id}')">Edytuj</button><button class="btn btn-danger btn-sm" onclick="deleteAssignment('${a.id}')">Usuń</button></div></td>
@@ -786,16 +890,23 @@ function confirmModal(){if(modalOkFn)modalOkFn();}
 // CRUD: CLASSES
 function modalClass(id){
   const c=id?getClass(id):null,color=c?c.color:COLORS[S.classes.length%COLORS.length];
+  const allGroups=S.schoolGroups;
+  const classGroupIdSet=new Set(c?c.groupIds||[]:[]);
+  const groupCheckboxes=allGroups.length
+    ?allGroups.map(g=>`<label class="form-checkbox"><input type="checkbox" value="${g.id}" ${classGroupIdSet.has(g.id)?'checked':''}><span class="group-chip" style="border-color:${g.color}">${esc(g.name)}</span></label>`).join('')
+    :'<span style="color:var(--text3);font-size:12px">Brak grup szkolnych. Dodaj je w Dane \u2192 Grupy.</span>';
   openModal(id?'Edytuj klas\u0119':'Dodaj klas\u0119',`
     <div class="form-group"><label class="form-label">Nazwa klasy *</label><input id="fc-name" class="form-input" placeholder="np. 1A, 2B" value="${esc(c?c.name:'')}"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Poziom</label><input id="fc-year" class="form-input" type="number" min="1" max="8" placeholder="1" value="${c?c.year||'':''}"></div>
       <div class="form-group"><label class="form-label">Uczniowie</label><input id="fc-students" class="form-input" type="number" min="1" placeholder="30" value="${c?c.students||'':''}"></div>
     </div>
-    <div class="form-group"><label class="form-label">Kolor</label><div class="color-row"><input id="fc-color" class="form-color" type="color" value="${color}"><span style="font-size:12px;color:var(--text2)">Kolor identyfikacyjny klasy</span></div></div>`,
+    <div class="form-group"><label class="form-label">Kolor</label><div class="color-row"><input id="fc-color" class="form-color" type="color" value="${color}"><span style="font-size:12px;color:var(--text2)">Kolor identyfikacyjny klasy</span></div></div>
+    <div class="form-group"><label class="form-label">Grupy w tej klasie</label><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="fc-groups">${groupCheckboxes}</div></div>`,
   ()=>{
     const name=document.getElementById('fc-name').value.trim();if(!name){notify('Podaj nazw\u0119 klasy','error');return;}
-    const data={name,year:+document.getElementById('fc-year').value||null,students:+document.getElementById('fc-students').value||null,color:document.getElementById('fc-color').value};
+    const groupIds=[...document.querySelectorAll('#fc-groups input:checked')].map(cb=>cb.value);
+    const data={name,year:+document.getElementById('fc-year').value||null,students:+document.getElementById('fc-students').value||null,color:document.getElementById('fc-color').value,groupIds};
     if(id)Object.assign(getClass(id),data);else S.classes.push({id:uid(),...data});
     saveState();closeModal();renderAll();renderTableClasses();notify(id?'Klasa zaktualizowana':'Klasa dodana','success');
   });
@@ -873,19 +984,110 @@ function modalAssignment(id){
   const so=S.subjects.map(s=>`<option value="${s.id}" ${a&&a.subjectId===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
   const to='<option value="">\u2014 brak \u2014</option>'+S.teachers.map(t=>`<option value="${t.id}" ${a&&a.teacherId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
   const ro='<option value="">\u2014 brak \u2014</option>'+S.rooms.map(r=>`<option value="${r.id}" ${a&&a.roomId===r.id?'selected':''}>${esc(r.name)}</option>`).join('');
+  // Buduj opcje grup dynamicznie po wyborze klasy
+  const buildGroupOpts=(classId,selId)=>{
+    const cls=getClass(classId);
+    const grpIds=cls?cls.groupIds||[]:[];
+    const opts='<option value="">cała klasa</option>'+grpIds.map(gid=>{const g=getSchoolGroup(gid);return g?`<option value="${g.id}" ${a&&a.groupId===g.id?'selected':''}>${esc(g.name)}</option>`:''}).join('');
+    const el=document.getElementById(selId);if(el)el.innerHTML=opts;
+  };
+  // Buduj opcje połączonych grup (inne klasy × ich grupy)
+  const buildLinkedOpts=()=>{
+    const selCls=document.getElementById('fa-cls');
+    const selGrp=document.getElementById('fa-grp');
+    if(!selCls||!selGrp)return;
+    const curClassId=selCls.value,curGroupId=selGrp.value;
+    if(!curGroupId){document.getElementById('fa-linked-wrap').style.display='none';return;}
+    document.getElementById('fa-linked-wrap').style.display='';
+    const curGroup=getSchoolGroup(curGroupId);
+    const linked=new Set(a?(a.linkedGroupIds||[]):[]);
+    // Pokaż wszystkie klasy które mają tę samą grupę, oprócz bieżącej klasy
+    const rows=S.classes.filter(c=>c.id!==curClassId&&(c.groupIds||[]).includes(curGroupId)).map(c=>{
+      const lid=c.id+':'+curGroupId;
+      return`<label class="form-checkbox"><input type="checkbox" class="fa-linked-cb" value="${lid}" ${linked.has(lid)?'checked':''}><span>${esc(c.name)} / ${esc(curGroup?curGroup.name:'?')}</span></label>`;
+    });
+    document.getElementById('fa-linked-list').innerHTML=rows.length?rows.join(''):'<span style="color:var(--text3);font-size:11px">Brak innych klas z tą grupą</span>';
+  };
+  const gopts='<option value="">cała klasa</option>'+(a&&a.classId?((getClass(a.classId)||{}).groupIds||[]).map(gid=>{const g=getSchoolGroup(gid);return g?`<option value="${g.id}" ${a.groupId===g.id?'selected':''}>${esc(g.name)}</option>`:''}).join(''):'');
   openModal(id?'Edytuj przypisanie':'Dodaj przypisanie',`
-    <div class="form-group"><label class="form-label">Klasa *</label><select id="fa-cls" class="form-select">${co||'<option disabled>Brak klas</option>'}</select></div>
+    <div class="form-group"><label class="form-label">Klasa *</label><select id="fa-cls" class="form-select" onchange="buildGroupOpts(this.value,'fa-grp');buildLinkedOpts()">${co||'<option disabled>Brak klas</option>'}</select></div>
     <div class="form-group"><label class="form-label">Przedmiot *</label><select id="fa-subj" class="form-select">${so||'<option disabled>Brak przedmiot\u00f3w</option>'}</select></div>
     <div class="form-group"><label class="form-label">Nauczyciel</label><select id="fa-teach" class="form-select">${to}</select></div>
     <div class="form-group"><label class="form-label">Sala</label><select id="fa-room" class="form-select">${ro}</select></div>
+    <div class="form-group"><label class="form-label">Dotyczy grupy</label><select id="fa-grp" class="form-select" onchange="buildLinkedOpts()">${gopts}</select><div style="font-size:11px;color:var(--text3);margin-top:4px">Zostaw puste jeśli lekcja dotyczy całej klasy</div></div>
+    <div id="fa-linked-wrap" style="display:none">
+      <div class="form-group"><label class="form-label">Połącz z grupami z innych klas</label><div id="fa-linked-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div><div style="font-size:11px;color:var(--text3);margin-top:4px">Zaznacz klasy których ta sama grupa uczestniczy razem (np. WF chłopcy z 1A+1B)</div></div>
+    </div>
     <div class="form-group"><label class="form-label">Godzin / tydzie\u0144 *</label><input id="fa-hrs" class="form-input" type="number" min="1" max="30" value="${a?a.hoursPerWeek||2:2}"></div>`,
   ()=>{
     const classId=document.getElementById('fa-cls').value,subjectId=document.getElementById('fa-subj').value;
     if(!classId||!subjectId){notify('Wybierz klas\u0119 i przedmiot','error');return;}
-    const data={classId,subjectId,teacherId:document.getElementById('fa-teach').value||null,roomId:document.getElementById('fa-room').value||null,hoursPerWeek:+document.getElementById('fa-hrs').value||1};
+    const groupId=document.getElementById('fa-grp').value||null;
+    const linkedGroupIds=[...document.querySelectorAll('.fa-linked-cb:checked')].map(cb=>cb.value);
+    const data={classId,subjectId,teacherId:document.getElementById('fa-teach').value||null,roomId:document.getElementById('fa-room').value||null,groupId,linkedGroupIds,hoursPerWeek:+document.getElementById('fa-hrs').value||1};
     if(id)Object.assign(getAssign(id),data);else S.assignments.push({id:uid(),...data});
     saveState();closeModal();renderPool();renderTableAssignments();notify(id?'Przypisanie zaktualizowane':'Przypisanie dodane','success');
   });
+  // Inicjuj opcje grup i połączeń po otwarciu modalu
+  setTimeout(()=>{
+    const cls=document.getElementById('fa-cls');
+    if(cls&&cls.value)buildGroupOpts(cls.value,'fa-grp');
+    buildLinkedOpts();
+  },30);
+}
+// ── GRUPY SZKOLNE ──────────────────────────────────────────────────
+function renderTableGroups(){
+  const tb=document.getElementById('tbody-groups');if(!tb)return;
+  if(!S.schoolGroups.length){tb.innerHTML='<tr class="empty-row"><td colspan="4">Brak grup szkolnych. Kliknij + Grupa aby dodać.</td></tr>';return;}
+  tb.innerHTML=S.schoolGroups.map(g=>{
+    // Zbierz klasy używające tej grupy
+    const usedIn=S.classes.filter(c=>(c.groupIds||[]).includes(g.id)).map(c=>c.name).join(', ');
+    return`<tr>
+      <td><span class="color-dot" style="background:${g.color||'#94a3b8'}"></span></td>
+      <td style="font-weight:600">${esc(g.name)}</td>
+      <td style="color:var(--text2);font-size:11.5px">${usedIn||'<span style="color:var(--text3)">—</span>'}</td>
+      <td><div class="td-actions"><button class="btn btn-ghost btn-sm" onclick="modalSchoolGroup('${g.id}')">Edytuj</button><button class="btn btn-danger btn-sm" onclick="deleteSchoolGroup('${g.id}')">Usuń</button></div></td>
+    </tr>`;}).join('');
+}
+function modalSchoolGroup(id){
+  const g=id?getSchoolGroup(id):null;
+  const color=g?g.color:COLORS[S.schoolGroups.length%COLORS.length];
+  openModal(id?'Edytuj grup\u0119':'Dodaj grup\u0119 szkoln\u0105',`
+    <div class="form-group"><label class="form-label">Nazwa grupy *</label>
+      <input id="fsg-name" class="form-input" placeholder="np. gr.1, gr.2, ch\u0142opcy, j.ang-A" value="${esc(g?g.name:'')}">
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Nazwa b\u0119dzie wida\u0107 na kartach lekcji i w planie</div>
+    </div>
+    <div class="form-group"><label class="form-label">Kolor grupy</label>
+      <div class="color-row"><input id="fsg-color" class="form-color" type="color" value="${color}">
+      <span style="font-size:12px;color:var(--text2)">Kolor paska grupy na karcie lekcji</span></div>
+    </div>`,
+  ()=>{
+    const name=document.getElementById('fsg-name').value.trim();
+    if(!name){notify('Podaj nazw\u0119 grupy','error');return;}
+    const data={name,color:document.getElementById('fsg-color').value};
+    if(id)Object.assign(getSchoolGroup(id),data);
+    else S.schoolGroups.push({id:uid(),...data});
+    saveState();closeModal();renderTableGroups();
+    notify(id?'Grupa zaktualizowana':'Grupa dodana','success');
+  });
+}
+function deleteSchoolGroup(id){
+  const usedIn=S.classes.filter(c=>(c.groupIds||[]).includes(id));
+  const usedAssign=S.assignments.filter(a=>a.groupId===id||(a.linkedGroupIds||[]).some(l=>l.includes(id)));
+  if(usedIn.length||usedAssign.length){
+    if(!confirm('Ta grupa jest używana w klasach i/lub przypisaniach. Usunąć mimo to?'))return;
+    // Wyćzyś z klas
+    S.classes.forEach(c=>{c.groupIds=(c.groupIds||[]).filter(g=>g!==id);});
+    // Wyćzyś z przypisań
+    S.assignments.forEach(a=>{
+      if(a.groupId===id)a.groupId=null;
+      a.linkedGroupIds=(a.linkedGroupIds||[]).filter(l=>!l.includes(id));
+    });
+  }else{
+    if(!confirm('Usunąć grupę?'))return;
+  }
+  S.schoolGroups=S.schoolGroups.filter(g=>g.id!==id);
+  saveState();renderAll();renderTableGroups();renderTableClasses();
 }
 function deleteAssignment(id){
   if(!confirm('Usun\u0105\u0107 przypisanie?'))return;
@@ -932,18 +1134,22 @@ function importJSON(text){
     const d=JSON.parse(text);
     if(d._format&&d._format.startsWith('plansal')){
       if(d.rooms)S.rooms=d.rooms;if(d.teachers)S.teachers=d.teachers;if(d.classes)S.classes=d.classes;
-      if(d.subjects)S.subjects=d.subjects;if(d.assignments)S.assignments=d.assignments;if(d.hours)S.hours=d.hours;
+      if(d.subjects)S.subjects=d.subjects;if(d.schoolGroups)S.schoolGroups=d.schoolGroups;if(d.assignments)S.assignments=d.assignments;if(d.hours)S.hours=d.hours;
       if(d.meta)Object.assign(S.meta,d.meta);
       if(d.schedule){S.lessons={};for(const e of d.schedule){const a=S.assignments.find(x=>x.classId===e.classId&&x.subjectId===e.subjectId&&x.teacherId===e.teacherId);if(a)S.lessons[lkey(e.classId,e.day,e.hour)]={assignmentId:a.id,locked:e.locked||false};}}
       saveState();return{ok:true,msg:'Zaimportowano dane z Plan-sal'};
     }
-    if(d.classes&&d.teachers){Object.assign(S,d);saveState();return{ok:true};}
+    if(d.classes&&d.teachers){
+      // Migracja: dodaj schoolGroups jeśli brak w starym pliku
+      if(!d.schoolGroups)d.schoolGroups=[];
+      Object.assign(S,d);saveState();return{ok:true};
+    }
     return{ok:false,error:'Nierozpoznany format pliku'};
   }catch(e){return{ok:false,error:e.message};}
 }
 function exportNative(){dl(JSON.stringify(S,null,2),`plan_${(S.meta.schoolName||'szkola').replace(/\s+/g,'_')}_${Date.now()}.json`,'application/json');}
 function exportPlanSal(){
-  const out={_format:'plansal-v1',_generated:new Date().toISOString(),meta:S.meta,hours:S.hours,rooms:S.rooms,teachers:S.teachers,classes:S.classes,subjects:S.subjects,assignments:S.assignments,
+  const out={_format:'plansal-v1',_generated:new Date().toISOString(),meta:S.meta,hours:S.hours,rooms:S.rooms,teachers:S.teachers,classes:S.classes,subjects:S.subjects,schoolGroups:S.schoolGroups,assignments:S.assignments,
     schedule:Object.entries(S.lessons).map(([k,l])=>{const[cid,d,h]=k.split('|');const a=getAssign(l.assignmentId);const subj=getSubject(a?a.subjectId:null);return{classId:cid,day:+d,hour:+h,subjectId:a?a.subjectId:null,subjectName:subj?subj.name:null,teacherId:a?a.teacherId:null,roomId:a?a.roomId:null,locked:l.locked||false};})
   };
   dl(JSON.stringify(out,null,2),`plan_sal_${Date.now()}.json`,'application/json');
