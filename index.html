@@ -792,7 +792,7 @@ function modalRoom(id){
   openModal(id?'Edytuj sal\u0119':'Dodaj sal\u0119',`
     <div class="form-row">
       <div class="form-group"><label class="form-label">Nazwa sali *</label><input id="fr-name" class="form-input" placeholder="101, Chemiczna" value="${esc(r?r.name:'')}"></div>
-      <div class="form-group"><label class="form-label">Skr\u00f3t</label><input id="fr-short" class="form-input" placeholder="101" value="${esc(r?r.short||':'')}"></div>
+      <div class="form-group"><label class="form-label">Skr\u00f3t</label><input id="fr-short" class="form-input" placeholder="101" value="${esc(r?r.short||'':'')}"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Typ sali</label><select id="fr-type" class="form-select">${types.map(([v,l])=>`<option value="${v}" ${r&&r.type===v?'selected':''}>${l}</option>`).join('')}</select></div>
@@ -812,7 +812,7 @@ function modalSubject(id){
   openModal(id?'Edytuj przedmiot':'Dodaj przedmiot',`
     <div class="form-row">
       <div class="form-group"><label class="form-label">Nazwa *</label><input id="fs-name" class="form-input" placeholder="Matematyka" value="${esc(s?s.name:'')}"></div>
-      <div class="form-group"><label class="form-label">Skr\u00f3t</label><input id="fs-short" class="form-input" placeholder="Mat" value="${esc(s?s.short||':'')}"></div>
+      <div class="form-group"><label class="form-label">Skr\u00f3t</label><input id="fs-short" class="form-input" placeholder="Mat" value="${esc(s?s.short||'':'')}"></div>
     </div>
     <div class="form-group"><label class="form-label">Kolor na planie</label><div class="color-row"><input id="fs-color" class="form-color" type="color" value="${color}"><span style="font-size:12px;color:var(--text2)">Kolor wyró\u017cniaj\u0105cy przedmiot na siatce</span></div></div>`,
   ()=>{
