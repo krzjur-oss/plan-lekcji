@@ -223,6 +223,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
     <button class="top-tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Ustawienia</button>
   </nav>
   <div class="top-actions">
+    <button id="btn-install" class="btn btn-ghost" onclick="installPWA()" style="display:none">⬇ Zainstaluj</button>
     <button class="btn btn-ghost" onclick="showImportExport()">⇅ Import / Eksport</button>
     <button class="btn btn-primary" onclick="doSave()">💾 Zapisz</button>
   </div>
@@ -551,6 +552,40 @@ function highlightSidebar(){
 }
 // ═══ APP ═══
 let currentTab='timetable',dataSubTab='classes',modalOkFn=null;
+// ═══ PWA INSTALL ═══
+let _installPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  // Chrome fires this when app CAN be installed
+  e.preventDefault();
+  _installPrompt = e;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = 'inline-flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  _installPrompt = null;
+  const btn = document.getElementById('btn-install');
+  if (btn) btn.style.display = 'none';
+  notify('Aplikacja zainstalowana ✓', 'success');
+});
+
+function installPWA() {
+  if (!_installPrompt) {
+    notify('Instalacja niedostępna. Otwórz przez HTTPS i odświeź stronę.', 'info');
+    return;
+  }
+  _installPrompt.prompt();
+  _installPrompt.userChoice.then(choice => {
+    if (choice.outcome === 'accepted') {
+      notify('Instalowanie...', 'success');
+    }
+    _installPrompt = null;
+    const btn = document.getElementById('btn-install');
+    if (btn) btn.style.display = 'none';
+  });
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   loadState();renderAll();switchDataTab('classes');renderHours();applySettings();
   if(S.classes.length)setActiveClass(S.classes[0].id);
