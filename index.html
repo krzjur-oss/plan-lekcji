@@ -686,7 +686,7 @@ function installPWA() {
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  loadState();if(!S.schoolGroups)S.schoolGroups=[];renderAll();switchDataTab('classes');renderHours();applySettings();
+  loadState();if(!S.schoolGroups)S.schoolGroups=[];renderAll();renderHours();applySettings();requestAnimationFrame(()=>switchDataTab('classes'));
   if(S.classes.length)setActiveClass(S.classes[0].id);
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setInterval(saveState,30000);
@@ -738,7 +738,12 @@ function switchTab(tab){
   currentTab=tab;
   document.querySelectorAll('.top-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+tab));
-  if(tab==='stats')renderStats();if(tab==='settings')applySettings();
+  // Odśwież zawartość aktywnej zakładki po zmianie widoczności DOM
+  requestAnimationFrame(()=>{
+    if(tab==='data')switchDataTab(dataSubTab);
+    else if(tab==='stats')renderStats();
+    else if(tab==='settings')applySettings();
+  });
 }
 const ADD_LABELS={classes:'+ Klasa',teachers:'+ Nauczyciel',rooms:'+ Sala',subjects:'+ Przedmiot',assignments:'+ Przypisanie',groups:'+ Grupa',hours:'+ Lekcja'};
 function switchDataTab(tab){
@@ -1142,7 +1147,7 @@ function showImportExport(){
 function doImport(e){const f=e.target.files[0];if(f)readFile(f);}
 function readFile(file){
   const r=new FileReader();
-  r.onload=e=>{const res=importJSON(e.target.result);closeModal();if(res.ok){renderAll();switchDataTab('classes');notify(res.msg||'Zaimportowano','success');}else notify('B\u0142\u0105d: '+res.error,'error');};
+  r.onload=e=>{const res=importJSON(e.target.result);closeModal();if(res.ok){renderAll();if(currentTab!=='data')switchTab('data');else switchDataTab('classes');notify(res.msg||'Zaimportowano ✓ — dane widoczne w zakładce Dane','success');}else notify('Błąd importu: '+res.error,'error');};
   r.readAsText(file);
 }
 function importJSON(text){
@@ -1156,9 +1161,13 @@ function importJSON(text){
       saveState();return{ok:true,msg:'Zaimportowano dane z Plan-sal'};
     }
     if(d.classes&&d.teachers){
-      // Migracja: dodaj schoolGroups jeśli brak w starym pliku
+      // Migracja: uzupełnij brakujące pola dla starszych plików
       if(!d.schoolGroups)d.schoolGroups=[];
-      Object.assign(S,d);saveState();return{ok:true};
+      if(!d.assignments)d.assignments=[];
+      if(!d.lessons)d.lessons={};
+      if(!d.hours||!d.hours.length)d.hours=JSON.parse(JSON.stringify(DEFAULT_HOURS));
+      Object.assign(S,d);
+      saveState();return{ok:true,msg:'Dane zaimportowane pomyślnie'};
     }
     return{ok:false,error:'Nierozpoznany format pliku'};
   }catch(e){return{ok:false,error:e.message};}
