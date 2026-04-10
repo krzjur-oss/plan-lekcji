@@ -703,7 +703,7 @@ function openPicker(classId,day,hour){
     <table class="data-table" style="min-width:440px"><thead><tr><th></th><th>Przedmiot</th><th>Nauczyciel</th><th>Sala</th><th>Grupa</th><th>Godz.</th></tr></thead><tbody>${rows}</tbody></table>`,
     null,false);
 }
-window.buildGroupOpts=function(classId,selId){const cls=getClass(classId);const grpIds=cls?(cls.groupIds||[]):[];const opts='<option value="">cała klasa</option>'+grpIds.map(gid=>{const g=getSchoolGroup(gid);return g?`<option value="${g.id}">${esc(g.name)}</option>`:""}).join("");const el=document.getElementById(selId);if(el)el.innerHTML=opts;};
+window.buildGroupOpts=function(classId,selId){const cls=getClass(classId);const grpIds=(cls?(cls.groupIds||[]).map(gid=>{const g=getSchoolGroup(gid);return{gid,name:g?g.name:""}}):[]).sort((a,b)=>a.name.localeCompare(b.name,"pl")).map(x=>x.gid);const opts='<option value="">cała klasa</option>'+grpIds.map(gid=>{const g=getSchoolGroup(gid);return g?`<option value="${g.id}">${esc(g.name)}</option>`:""}).join("");const el=document.getElementById(selId);if(el)el.innerHTML=opts;};
 window.buildLinkedOpts=function(){const selCls=document.getElementById("fa-cls");const selGrp=document.getElementById("fa-grp");if(!selCls||!selGrp)return;const curClassId=selCls.value,curGroupId=selGrp.value;const wrap=document.getElementById("fa-linked-wrap");if(!wrap)return;if(!curGroupId){wrap.style.display="none";return;}wrap.style.display="";const curGroup=getSchoolGroup(curGroupId);const rows=S.classes.filter(c=>c.id!==curClassId&&(c.groupIds||[]).includes(curGroupId)).map(c=>{const lid=c.id+":"+curGroupId;return`<label class="form-checkbox"><input type="checkbox" class="fa-linked-cb" value="${lid}"><span>${esc(c.name)} / ${esc(curGroup?curGroup.name:"?")}</span></label>`;});document.getElementById("fa-linked-list").innerHTML=rows.length?rows.join(""):"<span style=\"color:var(--text3);font-size:11px\">Brak innych klas z tą grupą</span>";};
 window.pickLesson=function(cid,d,h,aid){
   const a=getAssign(aid);
@@ -1090,7 +1090,7 @@ function modalTeacher(id){
     if(t.firstname!==undefined){initFirst=t.firstname||'';initLast=t.lastname||'';}
     else{const parts=(t.name||'').trim().split(/\s+/);initFirst=parts[0]||'';initLast=parts.slice(1).join(' ');}
   }
-  const subjOpts=S.subjects.map(s=>`<option value="${s.id}" ${t&&(t.subjects||[]).includes(s.id)?'selected':''}>${esc(s.name)}</option>`).join('');
+  const subjOpts=alphaSort(S.subjects,"name").map(s=>`<option value="${s.id}" ${t&&(t.subjects||[]).includes(s.id)?'selected':''}>${esc(s.name)}</option>`).join('');
   openModal(id?'Edytuj nauczyciela':'Dodaj nauczyciela',`
     <div class="form-row">
       <div class="form-group"><label class="form-label">Imi\u0119 *</label><input id="ft-first" class="form-input" placeholder="Jan" value="${esc(initFirst)}"></div>
@@ -1163,10 +1163,10 @@ function deleteSubject(id){if(!confirm('Usun\u0105\u0107 przedmiot?'))return;S.s
 // CRUD: ASSIGNMENTS
 function modalAssignment(id){
   const a=id?getAssign(id):null;
-  const co=S.classes.map(c=>`<option value="${c.id}" ${a&&a.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
-  const so=S.subjects.map(s=>`<option value="${s.id}" ${a&&a.subjectId===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
-  const to='<option value="">\u2014 brak \u2014</option>'+S.teachers.map(t=>`<option value="${t.id}" ${a&&a.teacherId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
-  const ro='<option value="">\u2014 brak \u2014</option>'+S.rooms.map(r=>`<option value="${r.id}" ${a&&a.roomId===r.id?'selected':''}>${esc(r.name)}</option>`).join('');
+  const co=alphaSort(S.classes,"name").map(c=>`<option value="${c.id}" ${a&&a.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+  const so=alphaSort(S.subjects,"name").map(s=>`<option value="${s.id}" ${a&&a.subjectId===s.id?'selected':''}>${esc(s.name)}</option>`).join('');
+  const to='<option value="">\u2014 brak \u2014</option>'+alphaSort(S.teachers,'name').map(t=>`<option value="${t.id}" ${a&&a.teacherId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
+  const ro='<option value="">\u2014 brak \u2014</option>'+alphaSort(S.rooms,'name').map(r=>`<option value="${r.id}" ${a&&a.roomId===r.id?'selected':''}>${esc(r.name)}</option>`).join('');
   // Buduj opcje grup dynamicznie po wyborze klasy
   const buildGroupOpts=(classId,selId)=>{
     const cls=getClass(classId);
