@@ -485,7 +485,7 @@ function groupLabel(a){
     if(allSameGroup){
       const ownClass=getClass(a.classId);
       const allClasses=(ownClass?[ownClass.name]:[]).concat(linkedClasses);
-      return gname+'\u00b7'+allClasses.join('+');
+      return gname+'·'+allClasses.join('+');
     }
     const linked=a.linkedGroupIds.map(lid=>{const[lcid,lgid]=lid.split(':');const lc=getClass(lcid),lg=getSchoolGroup(lgid);return(lc?lc.name:'?')+'/'+(lg?lg.name:'?');});
     return gname+'+'+linked.join('+');
@@ -636,8 +636,8 @@ function buildCard(assign,lesson,key,isConf,extra){
     (rname?'<div class="lc-room" style="color:var(--text3)">'+esc(rname)+'</div>':'')+
     '<button class="lc-remove" title="Usuń lekcję">\u2715</button>';
   div.querySelector('.lc-remove').addEventListener('click',e=>{
-    e.stopPropagation();const[cid,d,h]=key.split('|');
-    setLesson(cid,+d,+h,null);renderTimetable();renderSidebar();
+    e.stopPropagation();const parts=key.split('|');const[cid,d,h]=parts;const gid=parts[3]||null;
+    setLesson(cid,+d,+h,null,gid);renderTimetable();renderSidebar();
   });
   div.addEventListener('dragstart',e=>{dragData={assignId:assign.id,fromKey:key,type:'grid'};div.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',assign.id);});
   div.addEventListener('dragend',()=>div.classList.remove('dragging'));
