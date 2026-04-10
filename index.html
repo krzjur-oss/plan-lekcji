@@ -56,11 +56,6 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 /* LEFT SIDEBAR */
 #sidebar-left{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
 .sb-section{border-bottom:1px solid var(--border)}
-.sb-section-body{overflow:hidden;transition:max-height .22s ease,opacity .18s ease;max-height:600px;opacity:1}
-.sb-section.collapsed .sb-section-body{max-height:0;opacity:0}
-.sb-toggle{background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;padding:0 2px;line-height:1;transition:transform .2s,color .15s;display:flex;align-items:center}
-.sb-section.collapsed .sb-toggle{transform:rotate(-90deg)}
-.sb-toggle:hover{color:var(--accent)}
 .sb-header{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;font-size:10.5px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;background:var(--bg3);border-bottom:1px solid var(--border);user-select:none}
 .sb-add{background:none;border:none;cursor:pointer;color:var(--accent);font-size:17px;line-height:1;padding:0 3px;display:flex;align-items:center;border-radius:4px}
 .sb-add:hover{background:var(--accent-dim)}
@@ -109,9 +104,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .lesson-card:hover .lc-remove{display:block}
 .lc-remove:hover{background:var(--red);color:#fff}
 /* RIGHT SIDEBAR */
-#sidebar-right{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;width:268px;flex-shrink:0;transition:width .2s ease}
-#sidebar-right.hidden{width:0;min-width:0;border-left:none;overflow:hidden}
-#sidebar-right.hidden *{pointer-events:none}
+#sidebar-right{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .panel-head{padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:space-between;font-size:10.5px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;flex-shrink:0}
 #lesson-pool{flex:1;overflow-y:auto}
 .pool-section{border-bottom:1px solid var(--border)}
@@ -314,16 +307,16 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 <!-- LEFT SIDEBAR -->
 <aside id="sidebar-left">
   <div class="sb-section">
-    <div class="sb-header" onclick="toggleSbSection(this)" style="cursor:pointer"><span>🏫 Klasy</span><div style="display:flex;gap:4px;align-items:center"><button class="sb-add" onclick="event.stopPropagation();modalClass()">+</button><button class="sb-toggle">▼</button></div></div>
-    <div class="sb-section-body"><div id="sb-classes"><div class="sb-empty">Brak klas</div></div></div>
+    <div class="sb-header"><span>🏫 Klasy</span><button class="sb-add" onclick="modalClass()">+</button></div>
+    <div id="sb-classes"><div class="sb-empty">Brak klas</div></div>
   </div>
   <div class="sb-section">
-    <div class="sb-header" onclick="toggleSbSection(this)" style="cursor:pointer"><span>👨‍🏫 Nauczyciele</span><div style="display:flex;gap:4px;align-items:center"><button class="sb-add" onclick="event.stopPropagation();modalTeacher()">+</button><button class="sb-toggle">▼</button></div></div>
-    <div class="sb-section-body"><div id="sb-teachers"><div class="sb-empty">Brak nauczycieli</div></div></div>
+    <div class="sb-header"><span>👨‍🏫 Nauczyciele</span><button class="sb-add" onclick="modalTeacher()">+</button></div>
+    <div id="sb-teachers"><div class="sb-empty">Brak nauczycieli</div></div>
   </div>
   <div class="sb-section">
-    <div class="sb-header" onclick="toggleSbSection(this)" style="cursor:pointer"><span>🚪 Sale</span><div style="display:flex;gap:4px;align-items:center"><button class="sb-add" onclick="event.stopPropagation();modalRoom()">+</button><button class="sb-toggle">▼</button></div></div>
-    <div class="sb-section-body"><div id="sb-rooms"><div class="sb-empty">Brak sal</div></div></div>
+    <div class="sb-header"><span>🚪 Sale</span><button class="sb-add" onclick="modalRoom()">+</button></div>
+    <div id="sb-rooms"><div class="sb-empty">Brak sal</div></div>
   </div>
 </aside>
 <!-- MAIN -->
@@ -793,15 +786,7 @@ function installPWA() {
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  loadState();if(!S.schoolGroups)S.schoolGroups=[];
-  // Przywróć stan zwinięcia sekcji lewego panelu
-  ['sb-classes','sb-teachers','sb-rooms'].forEach(id=>{
-    if(localStorage.getItem('sb_sec_'+id)){
-      const el=document.getElementById(id);
-      if(el)el.closest('.sb-section')?.classList.add('collapsed');
-    }
-  });renderAll();renderHours();applySettings();requestAnimationFrame(()=>switchDataTab('classes'));
-
+  loadState();if(!S.schoolGroups)S.schoolGroups=[];renderAll();renderHours();applySettings();requestAnimationFrame(()=>switchDataTab('classes'));
   if(S.classes.length)setActiveClass(S.classes[0].id);
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setInterval(saveState,30000);
@@ -853,9 +838,6 @@ function switchTab(tab){
   currentTab=tab;
   document.querySelectorAll('.top-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+tab));
-  // Prawy panel tylko w zakładce Plan lekcji
-  const sr=document.getElementById('sidebar-right');
-  if(sr)sr.classList.toggle('hidden',tab!=='timetable');
   // Odśwież zawartość aktywnej zakładki po zmianie widoczności DOM
   requestAnimationFrame(()=>{
     if(tab==='data')switchDataTab(dataSubTab);
@@ -1352,13 +1334,6 @@ function exportAllCSV(){S.classes.forEach(c=>exportCSV(c.id));}
 function doExportCSV(){if(activeClassId)exportCSV(activeClassId);}
 function dl(content,filename,mime){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mime}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
 // MOBILE SIDEBAR
-function toggleSbSection(header){
-  const section=header.closest('.sb-section');
-  if(!section)return;
-  const key='sb_sec_'+section.querySelector('[id]')?.id;
-  const collapsed=section.classList.toggle('collapsed');
-  if(key)localStorage.setItem(key,collapsed?'1':'');
-}
 function toggleMobileSidebar(){
   const sb=document.getElementById('sidebar-left');
   const ov=document.getElementById('sidebar-overlay');
