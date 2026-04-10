@@ -511,7 +511,7 @@ function teacherLoad(){const m={};for(const l of Object.values(S.lessons)){const
 function detectConflicts(){
   const seen={},conf=new Set();
   for(const[k,l]of Object.entries(S.lessons)){
-    const parts=k.split('|');const d=parts[1],h=parts[2];
+    const parts=k.split('|');const classId=parts[0],d=parts[1],h=parts[2];
     const a=getAssign(l.assignmentId);if(!a)continue;
     const sl=d+'|'+h;
     // Konflikt nauczyciela
@@ -521,11 +521,36 @@ function detectConflicts(){
     // Konflikt grupy — ta sama grupa (schoolGroup) nie może być w dwóch miejscach naraz
     if(a.groupId){const gk='g|'+a.groupId+'|'+sl;if(seen[gk]){conf.add(k);conf.add(seen[gk]);}else seen[gk]=k;}
     // Konflikt klas połączonych przez linkedGroupIds
+    // WAŻNE: klucz musi zawierać classId żeby odróżnić 'cls1 ma gr1' od 'cls2 ma gr1'
+    // i nie powodować self-konfliktu z własnym groupId (który ma ten sam groupId)
     if(a.groupId&&a.linkedGroupIds&&a.linkedGroupIds.length){
       a.linkedGroupIds.forEach(lid=>{
-        const lgk='g|'+lid.split(':')[1]+'|'+sl;
+        const[lcid,lgid]=lid.split(':');
+        // Pomiń jeśli linkedGroup odnosi się do tej samej klasy (zabezpieczenie)
+        if(lcid===classId)return;
+        const lgk='g|'+lcid+'|'+lgid+'|'+sl;
         if(seen[lgk]){conf.add(k);conf.add(seen[lgk]);}else seen[lgk]=k;
       });
+    }
+    // Konflikt grupy — ta sama klasa nie może mieć lekcji grupowej i lekcji całej klasy w tym samym slocie
+    if(a.groupId){
+      // sprawdź czy istnieje lekcja "cała klasa" dla tej samej klasy i slotu
+      const wholeClassKey=classId+'|'+sl;
+      if(seen['wc|'+wholeClassKey]){conf.add(k);conf.add(seen['wc|'+wholeClassKey]);}
+    } else {
+      // lekcja całej klasy — sprawdź kolizję z istniejącymi lekcjami grupowymi tej klasy
+      const wholeClassKey=classId+'|'+sl;
+      seen['wc|'+wholeClassKey]=k;
+      // oznacz już zarejestrowane lekcje grupowe tej klasy w tym slocie jako konflikt
+      const prefix='gc|'+classId+'|'+sl+'|';
+      for(const sk of Object.keys(seen)){if(sk.startsWith(prefix)){conf.add(k);conf.add(seen[sk]);}}
+    }
+    // Rejestruj lekcję grupową dla potrzeb wykrywania kolizji z "całą klasą"
+    if(a.groupId){
+      const gcKey='gc|'+classId+'|'+sl+'|'+a.groupId;
+      seen[gcKey]=k;
+      // sprawdź czy wcześniej zarejestrowano lekcję "cała klasa" dla tej klasy
+      if(seen['wc|'+classId+'|'+sl]){conf.add(k);conf.add(seen['wc|'+classId+'|'+sl]);}
     }
   }
   return conf;
