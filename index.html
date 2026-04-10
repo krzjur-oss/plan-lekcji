@@ -826,7 +826,7 @@ function renderTableAssignments(){
     const r=ka.localeCompare(kb,'pl',{sensitivity:'base'});
     if(r!==0)return r;
     const ca=getClass(a.classId),cb=getClass(b.classId);
-    return(ca?ca.name:'').localeCompare(cb?cb.name:'',' pl',{sensitivity:'base'});
+    return(ca?ca.name:'').localeCompare(cb?cb.name:'','pl',{sensitivity:'base'});
   });
   tb.innerHTML=sorted.map(a=>{
     const cls=getClass(a.classId),subj=getSubject(a.subjectId),t=getTeacher(a.teacherId),r=getRoom(a.roomId);
