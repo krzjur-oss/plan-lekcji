@@ -217,6 +217,72 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .group-chip{display:inline-flex;align-items:center;padding:1px 7px;border-radius:3px;font-size:11px;font-weight:600;border:1.5px solid currentColor;background:transparent;}
 .form-checkbox{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);cursor:pointer;padding:3px 0;}
 .form-checkbox input{width:14px;height:14px;cursor:pointer;accent-color:var(--accent);}
+
+/* ── RESPONSIVE — tablet portrait i telefon ── */
+@media (max-width: 900px) {
+  #app {
+    grid-template-columns: 180px 1fr 0;
+    grid-template-rows: 48px 1fr;
+  }
+  #sidebar-right { display: none; }
+}
+@media (max-width: 600px) {
+  #app {
+    grid-template-columns: 0 1fr 0;
+    grid-template-rows: 48px 36px 1fr;
+    grid-template-areas:
+      "topbar  topbar  topbar"
+      "sb-tog  sb-tog  sb-tog"
+      "main    main    main";
+  }
+  #sidebar-left  { display: none; }
+  #sidebar-right { display: none; }
+  #main { grid-area: main; }
+  /* Kompaktowy topbar */
+  .top-tab { padding: 0 8px; font-size: 11.5px; gap: 3px; }
+  .logo { font-size: 13px; padding-right: 10px; margin-right: 6px; }
+  .btn { padding: 4px 8px; font-size: 11px; }
+  /* Kompaktowa siatka */
+  .cell { min-width: 80px; height: 46px; }
+  .timetable thead th { padding: 5px 6px; font-size: 10px; }
+  .hour-col { min-width: 56px; padding: 4px 5px; }
+}
+/* Sidebar mobilny — przycisk toggle */
+#sidebar-toggle {
+  display: none;
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 500;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 600px) {
+  #sidebar-toggle { display: flex; }
+  #sidebar-left.mobile-open {
+    display: flex;
+    position: fixed;
+    left: 0; top: 48px; bottom: 0;
+    width: 220px;
+    z-index: 400;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 399;
+    background: rgba(0,0,0,.3);
+  }
+}
 </style>
 </head>
 <body>
@@ -349,6 +415,9 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
   <div id="lesson-pool"><div class="pool-empty">Wybierz klasę</div></div>
 </aside>
 </div>
+<!-- SIDEBAR TOGGLE — mobile only -->
+<button id="sidebar-toggle" onclick="toggleMobileSidebar()" title="Menu">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay" style="display:none" onclick="closeMobileSidebar()"></div>
 <!-- MODAL -->
 <div id="modal-overlay" class="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
@@ -1192,6 +1261,20 @@ function exportCSV(classId){
 function exportAllCSV(){S.classes.forEach(c=>exportCSV(c.id));}
 function doExportCSV(){if(activeClassId)exportCSV(activeClassId);}
 function dl(content,filename,mime){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mime}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+// MOBILE SIDEBAR
+function toggleMobileSidebar(){
+  const sb=document.getElementById('sidebar-left');
+  const ov=document.getElementById('sidebar-overlay');
+  if(!sb||!ov)return;
+  const open=sb.classList.toggle('mobile-open');
+  ov.style.display=open?'block':'none';
+}
+function closeMobileSidebar(){
+  const sb=document.getElementById('sidebar-left');
+  const ov=document.getElementById('sidebar-overlay');
+  if(sb)sb.classList.remove('mobile-open');
+  if(ov)ov.style.display='none';
+}
 // NOTIFICATIONS
 function notify(msg,type='info'){
   const el=document.createElement('div');el.className='notif '+type;el.textContent=msg;

@@ -2,12 +2,14 @@
   "name": "PlanLekcji – Plan Szkoły",
   "short_name": "PlanLekcji",
   "description": "Aplikacja do układania planu lekcji dla szkół. Działa offline.",
-  "start_url": "./index.html",
-  "scope": "./",
+  "id": "/plan-lekcji/",
+  "start_url": "/plan-lekcji/index.html",
+  "scope": "/plan-lekcji/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#f1f5f9",
   "theme_color": "#2563eb",
-  "orientation": "landscape",
+  "orientation": "any",
   "lang": "pl",
   "icons": [
     {

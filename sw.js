@@ -1,17 +1,15 @@
-const CACHE = 'planlekcji-v5';
+const CACHE = 'planlekcji-v6';
 
-// Cachujemy tylko index.html i manifest — reszta ładuje się online
-// Używamy self.location do budowania absolutnych URL-i
-// (rozwiązuje problem cache miss na GH Pages z sub-path)
+// Absolutne URL-e — kluczowe dla poprawnego działania na GH Pages
+// i przy uruchamianiu zainstalowanej PWA z ikony na Android
 const ASSETS = [
-  self.registration.scope,             // np. https://user.github.io/repo/
+  self.registration.scope,
   self.registration.scope + 'index.html',
   self.registration.scope + 'manifest.json',
   self.registration.scope + 'icon-192.png',
   self.registration.scope + 'icon-512.png',
 ];
 
-// Install
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
@@ -20,7 +18,6 @@ self.addEventListener('install', e => {
   );
 });
 
-// Activate — usuń stare cache
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
@@ -31,27 +28,28 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Fetch — cache-first dla własnych zasobów, network dla reszty
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') returnn;
+  if (e.request.method !== 'GET') return;
 
-  // Tylko obsługuj zasoby w scope SW
-  if (!e.request.url.startsWith(self.registration.scope)) returnn;
+  // Obsługuj tylko zasoby w scope aplikacji
+  const url = new URL(e.request.url);
+  if (!e.request.url.startsWith(self.registration.scope)) return;
 
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) returnn cached;
+    caches.match(e.request, { ignoreSearch: true }).then(cached => {
+      if (cached) return cached;
 
-      returnn fetch(e.request).then(response => {
-        if (response && response.status === 200) {
+      return fetch(e.request).then(response => {
+        if (response && response.status === 200 && response.type !== 'opaque') {
           const clone = response.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
-        returnn response;
+        return response;
       }).catch(() => {
-        // Offline — zwróć index.html dla żądań nawigacyjnych
+        // Offline fallback — zawsze zwróć index.html
         if (e.request.mode === 'navigate') {
-          returnn caches.match(self.registration.scope + 'index.html');
+          return caches.match(self.registration.scope + 'index.html')
+            || caches.match(self.registration.scope);
         }
       });
     })
