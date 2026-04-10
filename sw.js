@@ -1,4 +1,4 @@
-const CACHE = 'planlekcji-v6';
+const CACHE = 'planlekcji-v7';
 
 // Absolutne URL-e — kluczowe dla poprawnego działania na GH Pages
 // i przy uruchamianiu zainstalowanej PWA z ikony na Android

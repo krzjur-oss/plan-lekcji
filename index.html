@@ -228,7 +228,30 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .form-checkbox{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);cursor:pointer;padding:3px 0;}
 .form-checkbox input{width:14px;height:14px;cursor:pointer;accent-color:var(--accent);}
 
-/* ── RESPONSIVE — tablet portrait i telefon ── */
+/* ── NOWY ROK SZKOLNY — wizard ── */
+.ny-section{margin-bottom:18px}
+.ny-section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:6px}
+.ny-section-title .ny-icon{font-size:14px}
+.ny-options{display:flex;flex-direction:column;gap:6px}
+.ny-option{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--r-md);border:1.5px solid var(--border);cursor:pointer;transition:all .15s;background:#fff}
+.ny-option:hover{border-color:var(--accent);background:var(--accent-dim)}
+.ny-option.selected{border-color:var(--accent);background:var(--accent-dim)}
+.ny-option input[type=radio]{margin-top:2px;accent-color:var(--accent);flex-shrink:0}
+.ny-option-body{flex:1}
+.ny-option-label{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:2px}
+.ny-option-desc{font-size:11px;color:var(--text3);line-height:1.45}
+.ny-promote-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.ny-promote-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid var(--border);border-radius:var(--r);font-size:12px}
+.ny-promote-row .arrow{color:var(--text3);font-size:11px;flex-shrink:0}
+.ny-promote-row select{flex:1;min-width:0;border:none;background:transparent;font-family:var(--sans);font-size:12px;color:var(--text);outline:none;cursor:pointer}
+.ny-promote-row select:focus{background:var(--accent-dim);border-radius:3px}
+.ny-promote-row .cls-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ny-summary{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.7}
+.ny-summary strong{color:var(--text)}
+.ny-summary .ny-warn{color:var(--yellow);font-weight:600}
+.ny-year-input{display:flex;align-items:center;gap:8px}
+.ny-year-input input{max-width:130px}
+
 @media (max-width: 900px) {
   #app {
     grid-template-columns: 180px 1fr 0;
@@ -308,6 +331,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
   </nav>
   <div class="top-actions">
     <button id="btn-install" class="btn btn-ghost" onclick="installPWA()" style="display:none">⬇ Zainstaluj</button>
+    <button class="btn btn-ghost" onclick="showNewYear()">📆 Nowy rok szkolny</button>
     <button class="btn btn-ghost" onclick="showImportExport()">⇅ Import / Eksport</button>
     <button class="btn btn-primary" onclick="doSave()">💾 Zapisz</button>
   </div>
@@ -1299,6 +1323,239 @@ function deleteAssignment(id){
   S.assignments=S.assignments.filter(a=>a.id!==id);
   for(const[k,l]of Object.entries(S.lessons))if(l.assignmentId===id)delete S.lessons[k];
   saveState();renderAll();renderTableAssignments();
+}
+// ══════════════════════════════════════════════════════════
+// NOWY ROK SZKOLNY
+// ══════════════════════════════════════════════════════════
+function nextYearString(year){
+  // '2024/2025' → '2025/2026'
+  const m=String(year||'').match(/(\d{4})\s*\/\s*(\d{4})/);
+  if(m){const y=parseInt(m[1])+1;return y+'/'+(y+1);}
+  const y=parseInt(year);if(!isNaN(y))return(y+1)+''+(y+2);
+  return '';
+}
+
+function showNewYear(){
+  const hasData=S.classes.length>0;
+  const suggestedYear=nextYearString(S.meta.year)||'';
+
+  // Buduj siatkę promocji: dla każdej klasy dropdown "awansuje na…"
+  function buildPromoteGrid(){
+    const classesAlpha=alphaSort(S.classes,'name');
+    const levelOpts=(cur)=>{
+      const levels=[1,2,3,4,5,6,7,8];
+      return'<option value="drop">— usuń klasę —</option>'+
+        levels.map(l=>`<option value="${l}" ${(cur||0)+1===l?'selected':''}>${l} (poziom ${l})</option>`).join('');
+    };
+    return classesAlpha.map(c=>`
+      <div class="ny-promote-row">
+        <span class="cls-dot" style="background:${c.color||'#94a3b8'}"></span>
+        <span style="font-weight:600;color:${c.color||'inherit'};min-width:40px">${esc(c.name)}</span>
+        <span class="arrow">→</span>
+        <select data-cls-id="${c.id}" class="ny-cls-level">
+          ${levelOpts(c.year)}
+        </select>
+      </div>`).join('');
+  }
+
+  const body=`
+    <div class="ny-section">
+      <div class="ny-section-title"><span class="ny-icon">🗓</span> Rok szkolny</div>
+      <div class="ny-year-input">
+        <input id="ny-year" class="form-input" placeholder="np. 2025/2026" value="${esc(suggestedYear)}" style="max-width:150px">
+        <span style="font-size:11px;color:var(--text3)">Nowy rok szkolny</span>
+      </div>
+    </div>
+
+    <div class="ny-section">
+      <div class="ny-section-title"><span class="ny-icon">📋</span> Co przenieść do nowego roku?</div>
+      <div class="ny-options">
+        <label class="ny-option selected" id="ny-opt-full">
+          <input type="radio" name="ny-mode" value="full" checked>
+          <div class="ny-option-body">
+            <div class="ny-option-label">Pełny szablon — struktura + plan lekcji</div>
+            <div class="ny-option-desc">Kopiuje klasy, nauczycieli, sale, przedmioty, przypisania i ułożone lekcje. Idealny gdy plan w nowym roku będzie podobny.</div>
+          </div>
+        </label>
+        <label class="ny-option" id="ny-opt-struct">
+          <input type="radio" name="ny-mode" value="struct">
+          <div class="ny-option-body">
+            <div class="ny-option-label">Tylko struktura — bez układu lekcji</div>
+            <div class="ny-option-desc">Kopiuje klasy, nauczycieli, sale, przedmioty i przypisania, ale <strong>czyści plan</strong>. Zaczynasz układanie od nowa.</div>
+          </div>
+        </label>
+        <label class="ny-option" id="ny-opt-bare">
+          <input type="radio" name="ny-mode" value="bare">
+          <div class="ny-option-body">
+            <div class="ny-option-label">Tylko zasoby — bez klas i przypisań</div>
+            <div class="ny-option-desc">Kopiuje tylko nauczycieli, sale i przedmioty. Klasy i przypisania dodajesz od nowa.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    ${hasData?`
+    <div class="ny-section" id="ny-promote-section">
+      <div class="ny-section-title"><span class="ny-icon">🎓</span> Promocja klas</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Ustaw poziom każdej klasy w nowym roku lub oznacz do usunięcia (np. klasy 8 kończące szkołę).</div>
+      <div class="ny-promote-grid" id="ny-promote-grid">
+        ${buildPromoteGrid()}
+      </div>
+    </div>`:''}
+
+    <div class="ny-section">
+      <div class="ny-section-title"><span class="ny-icon">💾</span> Opcje zapisu</div>
+      <div class="ny-options">
+        <label class="ny-option selected" id="ny-save-export">
+          <input type="radio" name="ny-save" value="export" checked>
+          <div class="ny-option-body">
+            <div class="ny-option-label">Eksportuj jako plik JSON</div>
+            <div class="ny-option-desc">Pobierz nowy plan jako plik. Bieżący rok pozostaje bez zmian — możesz go osobno zapisać.</div>
+          </div>
+        </label>
+        <label class="ny-option" id="ny-save-load">
+          <input type="radio" name="ny-save" value="load">
+          <div class="ny-option-body">
+            <div class="ny-option-label">Załaduj od razu i zastąp bieżące dane</div>
+            <div class="ny-option-desc"><span class="ny-warn">⚠ Zastąpi aktualny plan!</span> Najpierw wyeksportuj bieżący rok jeśli chcesz go zachować.</div>
+          </div>
+        </label>
+      </div>
+    </div>`;
+
+  openModal('📆 Nowy rok szkolny', body, ()=>{
+    const newYear=document.getElementById('ny-year').value.trim();
+    if(!newYear){notify('Podaj rok szkolny','error');return;}
+    const mode=document.querySelector('input[name="ny-mode"]:checked')?.value||'full';
+    const saveMode=document.querySelector('input[name="ny-save"]:checked')?.value||'export';
+
+    // Zbierz awanse klas
+    const promotions={};
+    document.querySelectorAll('.ny-cls-level').forEach(sel=>{
+      promotions[sel.dataset.clsId]=sel.value; // wartość: liczba lub 'drop'
+    });
+
+    // Wygeneruj nowy stan
+    const newState=buildNextYearState(mode, newYear, promotions);
+
+    if(saveMode==='export'){
+      const fname=`plan_${(newYear).replace(/[\s\/]/g,'_')}_${(S.meta.schoolName||'szkola').replace(/\s+/g,'_')}.json`;
+      dl(JSON.stringify(newState,null,2),fname,'application/json');
+      closeModal();
+      notify('Nowy rok wyeksportowany jako JSON ✓','success');
+    } else {
+      // Załaduj i zastąp
+      closeModal();
+      // Krótkie opóźnienie żeby modal zdążył się zamknąć
+      setTimeout(()=>{
+        Object.assign(S,newState);
+        activeClassId=S.classes.length?S.classes[0].id:null;
+        activeView='class';activeViewId=null;
+        saveState();renderAll();renderHours();applySettings();
+        switchDataTab('classes');
+        notify('Załadowano nowy rok szkolny '+newYear+' ✓','success');
+      },50);
+    }
+  });
+
+  // Podświetlanie aktywnej opcji
+  setTimeout(()=>{
+    document.querySelectorAll('input[name="ny-mode"]').forEach(r=>{
+      r.addEventListener('change',()=>{
+        document.querySelectorAll('.ny-option').forEach(o=>o.classList.remove('selected'));
+        r.closest('.ny-option').classList.add('selected');
+        // Sekcja promocji tylko gdy mode != bare
+        const sec=document.getElementById('ny-promote-section');
+        if(sec)sec.style.display=r.value==='bare'?'none':'';
+      });
+    });
+    document.querySelectorAll('input[name="ny-save"]').forEach(r=>{
+      r.addEventListener('change',()=>{
+        document.querySelectorAll('.ny-option[id^="ny-save"]').forEach(o=>o.classList.remove('selected'));
+        r.closest('.ny-option').classList.add('selected');
+      });
+    });
+  },30);
+}
+
+function buildNextYearState(mode, newYear, promotions){
+  // Głęboka kopia pomocnicza
+  const deep=obj=>JSON.parse(JSON.stringify(obj));
+
+  // Nowy rok bazuje na kopii aktualnego stanu
+  const ns={
+    meta:{...deep(S.meta), year:newYear, modifiedAt:new Date().toISOString()},
+    hours:deep(S.hours),
+    rooms:deep(S.rooms),
+    teachers:deep(S.teachers),
+    subjects:deep(S.subjects),
+    schoolGroups:deep(S.schoolGroups),
+    classes:[],
+    assignments:[],
+    lessons:{}
+  };
+
+  if(mode==='bare'){
+    // Tylko zasoby — klasy i przypisania puste
+    return ns;
+  }
+
+  // Buduj mapę starych ID klas → nowe ID (po promocji)
+  // klasy oznaczone 'drop' są pomijane
+  const classIdMap={}; // stare id → nowe id
+  S.classes.forEach(c=>{
+    const action=promotions[c.id];
+    if(action==='drop')return; // usuń klasę
+    // Nowa klasa — kopia z zaktualizowanym poziomem
+    const newLevel=action?+action:(c.year?c.year+1:null);
+    const newCls={
+      ...deep(c),
+      id:uid(),
+      year:newLevel
+    };
+    ns.classes.push(newCls);
+    classIdMap[c.id]=newCls.id;
+  });
+
+  // Przefiltruj przypisania — tylko dla klas które przetrwały promocję
+  S.assignments.forEach(a=>{
+    const newClassId=classIdMap[a.classId];
+    if(!newClassId)return; // klasa usunięta
+    const newAssign={
+      ...deep(a),
+      id:uid(),
+      classId:newClassId
+    };
+    // Zaktualizuj linkedGroupIds — usuń odwołania do usuniętych klas
+    if(newAssign.linkedGroupIds&&newAssign.linkedGroupIds.length){
+      newAssign.linkedGroupIds=newAssign.linkedGroupIds.filter(lid=>{
+        const lcid=lid.split(':')[0];
+        return !!classIdMap[lcid];
+      }).map(lid=>{
+        const[lcid,lgid]=lid.split(':');
+        return classIdMap[lcid]+':'+lgid;
+      });
+    }
+    ns.assignments.push(newAssign);
+    classIdMap['assign:'+a.id]=newAssign.id; // mapa starych assignId → nowych
+  });
+
+  if(mode==='full'){
+    // Kopiuj lekcje — przetłumacz klucze i assignmentId
+    Object.entries(S.lessons).forEach(([key,lesson])=>{
+      const parts=key.split('|');
+      const oldClassId=parts[0],d=parts[1],h=parts[2],grpId=parts[3];
+      const newClassId=classIdMap[oldClassId];
+      if(!newClassId)return; // klasa usunięta
+      const newAssignId=classIdMap['assign:'+lesson.assignmentId];
+      if(!newAssignId)return; // przypisanie nie istnieje
+      const newKey=grpId?newClassId+'|'+d+'|'+h+'|'+grpId:newClassId+'|'+d+'|'+h;
+      ns.lessons[newKey]={assignmentId:newAssignId,locked:lesson.locked||false};
+    });
+  }
+  // mode==='struct' → lessons zostają puste (już {})
+
+  return ns;
 }
 // IMPORT/EXPORT
 function showImportExport(){
