@@ -355,7 +355,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
         <table class="data-table"><thead><tr><th style="width:28px"></th><th>Nazwa klasy</th><th>Poziom</th><th>Uczniowie</th><th>Grupy klasy</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-classes"><tr class="empty-row"><td colspan="5">Brak klas</td></tr></tbody></table>
       </div>
       <div class="data-sub" id="dsub-teachers">
-        <table class="data-table"><thead><tr><th>Imię i nazwisko</th><th>Skrót</th><th>Przedmioty</th><th>Godz/tyg</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-teachers"><tr class="empty-row"><td colspan="5">Brak nauczycieli</td></tr></tbody></table>
+        <table class="data-table"><thead><tr><th>Imię</th><th>Nazwisko</th><th>Skrót</th><th>Przedmioty</th><th>Godz/tyg</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-teachers"><tr class="empty-row"><td colspan="6">Brak nauczycieli</td></tr></tbody></table>
       </div>
       <div class="data-sub" id="dsub-rooms">
         <table class="data-table"><thead><tr><th>Nazwa sali</th><th>Skrót</th><th>Typ</th><th>Pojemność</th><th style="width:140px">Akcje</th></tr></thead><tbody id="tbody-rooms"><tr class="empty-row"><td colspan="5">Brak sal</td></tr></tbody></table>
@@ -879,12 +879,17 @@ function renderTableClasses(){
 }
 function renderTableTeachers(){
   const tb=document.getElementById('tbody-teachers');if(!tb)return;
-  if(!S.teachers.length){tb.innerHTML='<tr class="empty-row"><td colspan="5">Brak nauczycieli.</td></tr>';return;}
+  if(!S.teachers.length){tb.innerHTML='<tr class="empty-row"><td colspan="6">Brak nauczycieli.</td></tr>';return;}
   const load=teacherLoad();
-  tb.innerHTML=alphaSort(S.teachers,'name').map(t=>{
+  // Sortuj po nazwisku (lastname), fallback na name
+  const sorted=[...S.teachers].sort((a,b)=>{const la=(a.lastname||a.name||'').toLowerCase(),lb=(b.lastname||b.name||'').toLowerCase();return la.localeCompare(lb,'pl');});
+  tb.innerHTML=sorted.map(t=>{
+    const first=t.firstname||t.name.split(' ')[0]||'';
+    const last=t.lastname||t.name.split(' ').slice(1).join(' ')||t.name||'';
     const subjs=(t.subjects||[]).map(id=>{const s=getSubject(id);return s?s.name:id;}).join(', ');
     return`<tr>
-      <td style="font-weight:600">${esc(t.name)}</td>
+      <td>${esc(first)}</td>
+      <td style="font-weight:600">${esc(last)}</td>
       <td style="font-family:var(--mono);color:var(--text2)">${esc(t.short||'—')}</td>
       <td style="color:var(--text2);font-size:11.5px">${esc(subjs)||'—'}</td>
       <td style="font-family:var(--mono)">${load[t.id]||0} / ${t.maxHours||18}</td>
@@ -1040,24 +1045,60 @@ function deleteClass(id){
   saveState();renderAll();renderTableClasses();
 }
 // CRUD: TEACHERS
+function genTeacherShort(first,last){
+  // Algorytm skrótu:
+  // Nazwisko jednoczłonowe: pierwsza litera imienia + 3 pierwsze litery nazwiska → "JKow"
+  // Nazwisko dwuczłonowe (Kowalski-Nowak): pierwsza litera imienia + pierwsza litera każdego członu → "JKN"
+  const f=(first||'').trim();
+  const l=(last||'').trim();
+  if(!f||!l)return '';
+  const fi=f[0].toUpperCase();
+  const parts=l.split(/[-\s]+/).filter(Boolean);
+  if(parts.length>=2){
+    // Dwuczłonowe: inicjały każdego członu
+    return fi+parts.map(p=>p[0].toUpperCase()).join('');
+  }
+  // Jednoczłonowe: pierwsza litera imienia + 3 pierwsze litery nazwiska
+  return fi+(l.slice(0,3).charAt(0).toUpperCase()+l.slice(1,3).toLowerCase());
+}
 function modalTeacher(id){
   const t=id?getTeacher(id):null;
+  // Rozdziel istniejące imię i nazwisko (wsteczna kompatybilność: t.name = "Jan Kowalski")
+  let initFirst='',initLast='';
+  if(t){
+    if(t.firstname!==undefined){initFirst=t.firstname||'';initLast=t.lastname||'';}
+    else{const parts=(t.name||'').trim().split(/\s+/);initFirst=parts[0]||'';initLast=parts.slice(1).join(' ');}
+  }
   const subjOpts=S.subjects.map(s=>`<option value="${s.id}" ${t&&(t.subjects||[]).includes(s.id)?'selected':''}>${esc(s.name)}</option>`).join('');
   openModal(id?'Edytuj nauczyciela':'Dodaj nauczyciela',`
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Imi\u0119 i nazwisko *</label><input id="ft-name" class="form-input" placeholder="Jan Kowalski" value="${esc(t?t.name:'')}"></div>
-      <div class="form-group"><label class="form-label">Skr\u00f3t</label><input id="ft-short" class="form-input" placeholder="JKow" value="${esc(t?t.short||'':'')}"></div>
+      <div class="form-group"><label class="form-label">Imi\u0119 *</label><input id="ft-first" class="form-input" placeholder="Jan" value="${esc(initFirst)}"></div>
+      <div class="form-group"><label class="form-label">Nazwisko *</label><input id="ft-last" class="form-input" placeholder="Kowalski" value="${esc(initLast)}"></div>
+    </div>
+    <div class="form-group" style="margin-top:-4px">
+      <label class="form-label">Skr\u00f3t <small style="text-transform:none;font-weight:400;color:var(--text3)">— generowany automatycznie, mo\u017cesz zmieni\u0107</small></label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input id="ft-short" class="form-input" placeholder="JKow" value="${esc(t?t.short||'':'')}" style="font-family:var(--mono);max-width:90px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('ft-short').value=genTeacherShort(document.getElementById('ft-first').value,document.getElementById('ft-last').value)" title="Odśwież skrót" style="flex-shrink:0">\u21bb Generuj</button>
+      </div>
     </div>
     <div class="form-group"><label class="form-label">Nauczane przedmioty <small style="text-transform:none;font-weight:400">(Ctrl+klik = wiele)</small></label>
       <select id="ft-subjects" class="form-select" multiple size="5">${subjOpts||'<option disabled>Najpierw dodaj przedmioty</option>'}</select></div>
     <div class="form-group"><label class="form-label">Pensum (godz/tyg)</label><input id="ft-max" class="form-input" type="number" min="1" max="40" value="${t?t.maxHours||18:18}"></div>`,
   ()=>{
-    const name=document.getElementById('ft-name').value.trim();if(!name){notify('Podaj imi\u0119 i nazwisko','error');return;}
+    const first=document.getElementById('ft-first').value.trim();
+    const last=document.getElementById('ft-last').value.trim();
+    if(!first||!last){notify('Podaj imi\u0119 i nazwisko','error');return;}
+    const name=first+' '+last;
+    let short=document.getElementById('ft-short').value.trim();
+    if(!short)short=genTeacherShort(first,last);
     const subjects=Array.from(document.getElementById('ft-subjects').selectedOptions).map(o=>o.value);
-    const data={name,short:document.getElementById('ft-short').value.trim(),subjects,maxHours:+document.getElementById('ft-max').value||18};
+    const data={name,firstname:first,lastname:last,short,subjects,maxHours:+document.getElementById('ft-max').value||18};
     if(id)Object.assign(getTeacher(id),data);else S.teachers.push({id:uid(),...data});
     saveState();closeModal();renderAll();renderTableTeachers();notify(id?'Nauczyciel zaktualizowany':'Nauczyciel dodany','success');
   });
+  // Auto-generuj skrót przy otwieraniu formularza (tylko dla nowego nauczyciela)
+  if(!id)setTimeout(()=>{const fi=document.getElementById('ft-first'),la=document.getElementById('ft-last'),sh=document.getElementById('ft-short');if(fi&&la&&sh){fi.addEventListener('input',()=>{if(!sh._userEdited)sh.value=genTeacherShort(fi.value,la.value);});la.addEventListener('input',()=>{if(!sh._userEdited)sh.value=genTeacherShort(fi.value,la.value);});sh.addEventListener('input',()=>{sh._userEdited=sh.value!==genTeacherShort(fi.value,la.value);});}},50);
 }
 function deleteTeacher(id){if(!confirm('Usun\u0105\u0107 nauczyciela?'))return;S.teachers=S.teachers.filter(t=>t.id!==id);saveState();renderAll();renderTableTeachers();}
 // CRUD: ROOMS
