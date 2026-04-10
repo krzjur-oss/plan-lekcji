@@ -56,7 +56,14 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 /* LEFT SIDEBAR */
 #sidebar-left{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
 .sb-section{border-bottom:1px solid var(--border)}
-.sb-header{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;font-size:10.5px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;background:var(--bg3);border-bottom:1px solid var(--border);user-select:none}
+.sb-header{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;font-size:10.5px;font-weight:600;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;background:var(--bg3);border-bottom:1px solid var(--border);user-select:none;cursor:pointer;transition:background .12s}
+.sb-header:hover{background:var(--bg4)}
+.sb-header-left{display:flex;align-items:center;gap:5px;flex:1;min-width:0}
+.sb-chevron{font-size:9px;color:var(--text3);transition:transform .2s;flex-shrink:0;line-height:1}
+.sb-section.collapsed .sb-chevron{transform:rotate(-90deg)}
+.sb-section.collapsed .sb-list{display:none}
+.sb-section.collapsed .sb-header{border-bottom:none}
+.sb-header-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
 .sb-add{background:none;border:none;cursor:pointer;color:var(--accent);font-size:17px;line-height:1;padding:0 3px;display:flex;align-items:center;border-radius:4px}
 .sb-add:hover{background:var(--accent-dim)}
 .sb-item{display:flex;align-items:center;gap:7px;padding:6px 10px 6px 12px;cursor:pointer;font-size:12.5px;color:var(--text2);border-left:3px solid transparent;transition:all .12s;position:relative}
@@ -306,17 +313,26 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 </header>
 <!-- LEFT SIDEBAR -->
 <aside id="sidebar-left">
-  <div class="sb-section">
-    <div class="sb-header"><span>🏫 Klasy</span><button class="sb-add" onclick="modalClass()">+</button></div>
-    <div id="sb-classes"><div class="sb-empty">Brak klas</div></div>
+  <div class="sb-section" id="sbsec-classes">
+    <div class="sb-header" onclick="toggleSbSection('classes',event)">
+      <div class="sb-header-left"><span class="sb-chevron">▾</span><span>🏫 Klasy</span></div>
+      <div class="sb-header-actions"><button class="sb-add" onclick="event.stopPropagation();modalClass()">+</button></div>
+    </div>
+    <div class="sb-list" id="sb-classes"><div class="sb-empty">Brak klas</div></div>
   </div>
-  <div class="sb-section">
-    <div class="sb-header"><span>👨‍🏫 Nauczyciele</span><button class="sb-add" onclick="modalTeacher()">+</button></div>
-    <div id="sb-teachers"><div class="sb-empty">Brak nauczycieli</div></div>
+  <div class="sb-section" id="sbsec-teachers">
+    <div class="sb-header" onclick="toggleSbSection('teachers',event)">
+      <div class="sb-header-left"><span class="sb-chevron">▾</span><span>👨‍🏫 Nauczyciele</span></div>
+      <div class="sb-header-actions"><button class="sb-add" onclick="event.stopPropagation();modalTeacher()">+</button></div>
+    </div>
+    <div class="sb-list" id="sb-teachers"><div class="sb-empty">Brak nauczycieli</div></div>
   </div>
-  <div class="sb-section">
-    <div class="sb-header"><span>🚪 Sale</span><button class="sb-add" onclick="modalRoom()">+</button></div>
-    <div id="sb-rooms"><div class="sb-empty">Brak sal</div></div>
+  <div class="sb-section" id="sbsec-rooms">
+    <div class="sb-header" onclick="toggleSbSection('rooms',event)">
+      <div class="sb-header-left"><span class="sb-chevron">▾</span><span>🚪 Sale</span></div>
+      <div class="sb-header-actions"><button class="sb-add" onclick="event.stopPropagation();modalRoom()">+</button></div>
+    </div>
+    <div class="sb-list" id="sb-rooms"><div class="sb-empty">Brak sal</div></div>
   </div>
 </aside>
 <!-- MAIN -->
@@ -1333,6 +1349,31 @@ function exportCSV(classId){
 function exportAllCSV(){S.classes.forEach(c=>exportCSV(c.id));}
 function doExportCSV(){if(activeClassId)exportCSV(activeClassId);}
 function dl(content,filename,mime){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mime}));a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+// SIDEBAR SECTION COLLAPSE
+(function initSbSections(){
+  const STORE_KEY='pl_sb_collapsed';
+  function loadState(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||{};}catch{return {};}}
+  function saveState2(s){try{localStorage.setItem(STORE_KEY,JSON.stringify(s));}catch{}}
+  window.toggleSbSection=function(name,e){
+    if(e&&e.target.closest('.sb-add'))return;
+    const sec=document.getElementById('sbsec-'+name);
+    if(!sec)return;
+    sec.classList.toggle('collapsed');
+    const s=loadState();
+    s[name]=sec.classList.contains('collapsed');
+    saveState2(s);
+  };
+  // Restore collapsed state on load
+  document.addEventListener('DOMContentLoaded',function(){
+    const s=loadState();
+    ['classes','teachers','rooms'].forEach(name=>{
+      if(s[name]){
+        const sec=document.getElementById('sbsec-'+name);
+        if(sec)sec.classList.add('collapsed');
+      }
+    });
+  });
+})();
 // MOBILE SIDEBAR
 function toggleMobileSidebar(){
   const sb=document.getElementById('sidebar-left');
