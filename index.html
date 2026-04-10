@@ -213,7 +213,9 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 /* ── GRUPY ── */
 .cell-groups{display:flex;gap:2px;height:100%;align-items:stretch;}
 .cell-groups .lesson-card{flex:1;min-width:0;}
-.lc-group{font-size:9px;font-weight:700;letter-spacing:.04em;padding:1px 4px;border-radius:2px;margin-bottom:2px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lc-group{font-size:9px;font-weight:700;letter-spacing:.04em;padding:1px 4px;border-radius:2px;margin-bottom:2px;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:baseline;gap:3px;min-width:0}
+.lc-group-name{flex-shrink:0}
+.lc-group-classes{font-weight:500;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;opacity:.9}
 .group-chip{display:inline-flex;align-items:center;padding:1px 7px;border-radius:3px;font-size:11px;font-weight:600;border:1.5px solid currentColor;background:transparent;}
 .form-checkbox{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);cursor:pointer;padding:3px 0;}
 .form-checkbox input{width:14px;height:14px;cursor:pointer;accent-color:var(--accent);}
@@ -476,17 +478,19 @@ function classGroupIds(classId){
 function groupLabel(a){
   if(!a.groupId)return '';
   const g=getSchoolGroup(a.groupId);
-  let lbl=g?g.name:'?';
+  const gname=g?g.name:'?';
   if(a.linkedGroupIds&&a.linkedGroupIds.length){
-    const linked=a.linkedGroupIds.map(lid=>{
-      // lid = "classId:groupId"
-      const[lcid,lgid]=lid.split(':');
-      const lc=getClass(lcid),lg=getSchoolGroup(lgid);
-      return(lc?lc.name:'?')+'/'+(lg?lg.name:'?');
-    });
-    lbl+='+'+linked.join('+');
+    const linkedClasses=a.linkedGroupIds.map(lid=>{const[lcid]=lid.split(':');const lc=getClass(lcid);return lc?lc.name:'?';});
+    const allSameGroup=a.linkedGroupIds.every(lid=>lid.split(':')[1]===a.groupId);
+    if(allSameGroup){
+      const ownClass=getClass(a.classId);
+      const allClasses=(ownClass?[ownClass.name]:[]).concat(linkedClasses);
+      return gname+'\u00b7'+allClasses.join('+');
+    }
+    const linked=a.linkedGroupIds.map(lid=>{const[lcid,lgid]=lid.split(':');const lc=getClass(lcid),lg=getSchoolGroup(lgid);return(lc?lc.name:'?')+'/'+(lg?lg.name:'?');});
+    return gname+'+'+linked.join('+');
   }
-  return lbl;
+  return gname;
 }
 // Klucz lekcji — dla grup dodajemy groupId żeby wiele grup mogło być w tej samej godzinie
 function lkey(c,d,h,groupId){
@@ -623,8 +627,10 @@ function buildCard(assign,lesson,key,isConf,extra){
   const tname=teacher?(teacher.short||teacher.name.split(' ').pop()):'';
   const rname=room?room.name:'';
   const glabel=groupLabel(assign);
+  const sepIdx=glabel?glabel.indexOf('·'):-1;
+  const glabelHtml=glabel?(sepIdx>-1?'<div class="lc-group" style="background:'+color+';color:#fff"><span class="lc-group-name">'+esc(glabel.slice(0,sepIdx))+'</span><span class="lc-group-classes">'+esc(glabel.slice(sepIdx+1))+'</span></div>':'<div class="lc-group" style="background:'+color+';color:#fff">'+esc(glabel)+'</div>'):'';
   div.innerHTML=
-    (glabel?'<div class="lc-group" style="background:'+color+';color:#fff">'+esc(glabel)+'</div>':'')+
+    glabelHtml+
     '<div class="lc-subject" style="color:'+color+'">'+(extra?'<small style="color:var(--text3);font-weight:400">['+esc(extra)+'] </small>':'')+esc(sname)+'</div>'+
     (tname?'<div class="lc-teacher" style="color:var(--text2)">'+esc(tname)+'</div>':'')+
     (rname?'<div class="lc-room" style="color:var(--text3)">'+esc(rname)+'</div>':'')+
