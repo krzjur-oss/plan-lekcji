@@ -4,6 +4,7 @@ const DB_KEY='planlekcji_v2';
 const DAYS=['Poniedziałek','Wtorek','Środa','Czwartek','Piątek'];
 const COLORS=['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#ea580c','#059669','#db2777','#65a30d','#0284c7','#9333ea'];
 const DEFAULT_HOURS=[
+  {num:0,start:'07:10',end:'07:55'},
   {num:1,start:'08:00',end:'08:45'},{num:2,start:'08:50',end:'09:35'},
   {num:3,start:'09:45',end:'10:30'},{num:4,start:'10:45',end:'11:30'},
   {num:5,start:'11:40',end:'12:25'},{num:6,start:'12:30',end:'13:15'},
@@ -173,7 +174,8 @@ function buildTable(cellFn,viewId,viewType){
   const tbody=tbl.createTBody();
   S.hours.forEach((h,hi)=>{
     const tr=tbody.insertRow();
-    tr.innerHTML=`<td class="hour-col"><span class="hour-num">${h.num}</span><span class="hour-time">${h.start}\u2013${h.end}</span></td>`;
+    const _h0=h.num===0?'<span style="font-size:9px;color:var(--text3);display:block;line-height:1;margin-top:1px">nieob.</span>':'';
+    tr.innerHTML=`<td class="hour-col"${h.num===0?' title="Godzina nieobowi\u0105zkowa"':''}><span class="hour-num">${h.num}${_h0}</span><span class="hour-time">${h.start}\u2013${h.end}</span></td>`;
     DAYS.forEach((_,di)=>{
       const td=tr.insertCell();td.className='cell';td.dataset.day=di;td.dataset.hour=hi;
       if(viewId)td.dataset.viewId=viewId;if(viewType)td.dataset.viewType=viewType;
@@ -570,8 +572,8 @@ function renderHours(){
     <button class="btn btn-danger btn-sm btn-icon" onclick="removeHour(${i})" title="Usu\u0144">\u2715</button>
   </div>`).join('');
 }
-function addHour(){S.hours.push({num:S.hours.length+1,start:'00:00',end:'00:00'});saveState();renderHours();renderTimetable();}
-function removeHour(i){S.hours.splice(i,1);S.hours.forEach((h,idx)=>h.num=idx+1);saveState();renderHours();renderTimetable();}
+function addHour(){const last=S.hours[S.hours.length-1];const nextNum=last?last.num+1:1;S.hours.push({num:nextNum,start:'00:00',end:'00:00'});saveState();renderHours();renderTimetable();}
+function removeHour(i){S.hours.splice(i,1);const base=S.hours.length&&S.hours[0].num===0?0:1;S.hours.forEach((h,idx)=>h.num=base+idx);saveState();renderHours();renderTimetable();}
 // STATS
 function renderStats(){
   const el=document.getElementById('stats-content');if(!el)return;
