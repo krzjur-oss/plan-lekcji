@@ -427,6 +427,42 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .wiz-draft-meta{font-size:11.5px;color:var(--text3);margin-bottom:20px;}
 .wiz-draft-btns{display:flex;flex-direction:column;gap:8px;}
 
+/* ── PŁACHTA ── */
+.plachta-container{display:flex;flex-direction:column;gap:20px;min-width:max-content}
+.plachta-entity{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);overflow:hidden}
+.plachta-entity-header{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;font-weight:700;color:#fff;border-bottom:1px solid rgba(0,0,0,.1);position:sticky;left:0;z-index:6}
+.plachta-entity-header .ph-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.5);flex-shrink:0}
+.plachta-entity-header .ph-name{flex:1}
+.plachta-entity-header .ph-badge{font-size:10px;font-weight:500;background:rgba(0,0,0,.15);border-radius:3px;padding:1px 6px;font-family:var(--mono)}
+.plachta-scroll{overflow-x:auto}
+.plachta-tbl{border-collapse:collapse;font-size:11px}
+.plachta-tbl th,.plachta-tbl td{border:1px solid var(--border)}
+.plachta-tbl thead th{background:var(--bg3);padding:4px 8px;font-size:10.5px;font-weight:600;color:var(--text2);text-align:center;white-space:nowrap;position:sticky;top:0;z-index:4;border-bottom:2px solid var(--border2)}
+.plachta-tbl .ph-hour-col{background:var(--bg3);padding:4px 7px;text-align:center;white-space:nowrap;min-width:64px;vertical-align:middle;position:sticky;left:0;z-index:3;border-right:2px solid var(--border2)}
+.plachta-tbl .ph-hour-num{font-weight:700;color:var(--text);font-size:12px}
+.plachta-tbl .ph-hour-time{font-size:9.5px;color:var(--text3);font-family:var(--mono)}
+.ph-cell{width:120px;min-width:100px;height:48px;vertical-align:top;padding:2px;background:#fff}
+.ph-cell.ph-empty{background:var(--bg3)}
+.ph-cell.ph-conflict{background:var(--red-dim)!important}
+.ph-card{border-radius:3px;padding:3px 5px;height:100%;border-left:3px solid;overflow:hidden;position:relative}
+.ph-card .ph-s{font-weight:700;font-size:10.5px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ph-card .ph-t{font-size:9.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.ph-card .ph-r{font-size:9px;font-family:var(--mono);color:var(--text3);position:absolute;right:3px;bottom:2px}
+.ph-card .ph-g{font-size:8.5px;font-weight:700;padding:0 3px;border-radius:2px;display:inline-block;margin-bottom:1px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ph-multi{display:flex;gap:1px;height:100%}
+.ph-multi .ph-card{flex:1;min-width:0}
+.plachta-legend{display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);margin-bottom:8px;font-size:11px;flex-wrap:wrap;position:sticky;left:0}
+.plachta-legend-item{display:flex;align-items:center;gap:4px}
+.plachta-legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+@media print{
+  #topbar,#sidebar-left,#sidebar-right,#plachta-toolbar,.plachta-legend{display:none!important}
+  #app{display:block}
+  #page-plachta{display:block!important;height:auto;overflow:visible}
+  #plachta-wrapper{overflow:visible;padding:0}
+  .plachta-entity{break-inside:avoid;margin-bottom:12pt}
+  .plachta-entity-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ph-card{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 /* About modal */
 .about-version-table{width:100%;border-collapse:collapse;font-size:12px;}
 .about-version-table td{padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text2);}
@@ -738,6 +774,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
   <div class="logo">Plan<span>Lekcji</span></div>
   <nav class="top-tabs">
     <button class="top-tab active" data-tab="timetable" onclick="switchTab('timetable')">📅 Plan lekcji</button>
+    <button class="top-tab" data-tab="plachta" onclick="switchTab('plachta')">📄 Płachta</button>
     <button class="top-tab" data-tab="data" onclick="switchTab('data')">📋 Dane</button>
     <button class="top-tab" data-tab="stats" onclick="switchTab('stats')">📊 Statystyki</button>
     <button class="top-tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Ustawienia</button>
@@ -848,6 +885,36 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
     <div class="page-content" id="stats-content" style="background:var(--bg)">
       <div class="empty-state">Przejdź do tej zakładki po dodaniu danych.</div>
     </div>
+  </div>
+  <!-- PŁACHTA -->
+  <div class="page" id="page-plachta">
+    <div class="page-toolbar" id="plachta-toolbar" style="flex-wrap:wrap;gap:6px">
+      <span style="font-weight:600;font-size:12.5px;color:var(--text)">📄 Płachta szkoły</span>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:8px">
+        <label style="font-size:11px;color:var(--text2);font-weight:500">Widok:</label>
+        <div style="display:flex;gap:0">
+          <button class="tab-btn active" id="plachta-mode-class" onclick="plachtaSetMode('class')">Klasy</button>
+          <button class="tab-btn" id="plachta-mode-teacher" onclick="plachtaSetMode('teacher')">Nauczyciele</button>
+          <button class="tab-btn" id="plachta-mode-room" onclick="plachtaSetMode('room')">Sale</button>
+        </div>
+        <label style="font-size:11px;color:var(--text2);font-weight:500;margin-left:8px">Dzień:</label>
+        <select id="plachta-day-filter" class="form-select" style="width:auto;padding:3px 8px;font-size:12px" onchange="renderPlachta()">
+          <option value="-1">Wszystkie dni</option>
+          <option value="0">Poniedziałek</option>
+          <option value="1">Wtorek</option>
+          <option value="2">Środa</option>
+          <option value="3">Czwartek</option>
+          <option value="4">Piątek</option>
+        </select>
+        <label style="font-size:11px;color:var(--text2);font-weight:500;margin-left:4px">Szukaj:</label>
+        <input id="plachta-search" class="form-input" placeholder="filtruj…" style="width:130px;padding:3px 8px;font-size:12px" oninput="renderPlachta()">
+      </div>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="plachtaPrint()">🖨 Drukuj</button>
+        <button class="btn btn-ghost btn-sm" onclick="renderPlachta()">↻ Odśwież</button>
+      </div>
+    </div>
+    <div id="plachta-wrapper" style="flex:1;overflow:auto;padding:12px;background:var(--bg)"></div>
   </div>
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
@@ -1343,6 +1410,7 @@ function switchTab(tab){
     if(tab==='data')switchDataTab(dataSubTab);
     else if(tab==='stats')renderStats();
     else if(tab==='settings')applySettings();
+    else if(tab==='plachta')renderPlachta();
   });
 }
 const ADD_LABELS={classes:'+ Klasa',teachers:'+ Nauczyciel',rooms:'+ Sala',subjects:'+ Przedmiot',assignments:'+ Przypisanie',groups:'+ Grupa',hours:'+ Lekcja'};
@@ -2739,6 +2807,172 @@ function wizDraftDiscard() {
 // ── HELPER ───────────────────────────────────────────────
 function escH(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── PŁACHTA ─────────────────────────────────────────────
+let plachtaMode = 'class'; // 'class' | 'teacher' | 'room'
+
+function plachtaSetMode(mode) {
+  plachtaMode = mode;
+  ['class','teacher','room'].forEach(m => {
+    const btn = document.getElementById('plachta-mode-' + m);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  renderPlachta();
+}
+
+function renderPlachta() {
+  const wrap = document.getElementById('plachta-wrapper');
+  if (!wrap) return;
+  const dayFilter = +document.getElementById('plachta-day-filter').value;
+  const search = (document.getElementById('plachta-search').value || '').toLowerCase().trim();
+  const conf = detectConflicts();
+
+  const days = dayFilter === -1 ? DAYS.map((_,i) => i) : [dayFilter];
+
+  let entities = [];
+  if (plachtaMode === 'class') {
+    entities = alphaSort(S.classes, 'name').filter(c => !search || c.name.toLowerCase().includes(search));
+  } else if (plachtaMode === 'teacher') {
+    entities = alphaSort(S.teachers, 'name').filter(t => !search || t.name.toLowerCase().includes(search) || (t.short||'').toLowerCase().includes(search));
+  } else {
+    entities = alphaSort(S.rooms, 'name').filter(r => !search || r.name.toLowerCase().includes(search));
+  }
+
+  if (!entities.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div>Brak danych do wyświetlenia</div>';
+    return;
+  }
+
+  // Legend for class mode (subject colors)
+  let legendHtml = '';
+  if (plachtaMode === 'class' && S.subjects.length) {
+    const legendItems = alphaSort(S.subjects, 'name').map(s =>
+      `<span class="plachta-legend-item"><span class="plachta-legend-dot" style="background:${s.color||'#94a3b8'}"></span><span>${esc(s.short||s.name)}</span></span>`
+    ).join('');
+    legendHtml = `<div class="plachta-legend"><strong style="font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Przedmioty:</strong>${legendItems}</div>`;
+  }
+
+  const blocks = entities.map(entity => buildPlachtaBlock(entity, days, conf)).join('');
+  wrap.innerHTML = `<div class="plachta-container">${legendHtml}${blocks}</div>`;
+}
+
+function buildPlachtaBlock(entity, days, conf) {
+  const isClass = plachtaMode === 'class';
+  const isTeacher = plachtaMode === 'teacher';
+  const isRoom = plachtaMode === 'room';
+
+  let headerColor, headerName, headerBadge;
+  if (isClass) {
+    headerColor = entity.color || '#2563eb';
+    headerName = 'Klasa ' + entity.name;
+    const cnt = S.assignments.filter(a => a.classId === entity.id).reduce((s,a) => s+(a.hoursPerWeek||0), 0);
+    const placed = Object.keys(S.lessons).filter(k => k.startsWith(entity.id + '|')).length;
+    headerBadge = `${placed}/${cnt} godz.`;
+  } else if (isTeacher) {
+    headerColor = '#7c3aed';
+    headerName = entity.name;
+    const load = teacherLoad();
+    headerBadge = `${load[entity.id]||0}h / ${entity.maxHours||18}h`;
+  } else {
+    headerColor = '#0891b2';
+    headerName = 'Sala ' + entity.name;
+    const usedSlots = [];
+    for (const [k, l] of Object.entries(S.lessons)) {
+      const parts = k.split('|');
+      const a = getAssign(l.assignmentId);
+      if (a && a.roomId === entity.id) usedSlots.push(k);
+    }
+    headerBadge = `${usedSlots.length} zajęć`;
+  }
+
+  // Column headers: days
+  const dayHeaders = days.map(di => `<th colspan="1">${DAYS[di]}</th>`).join('');
+
+  // Rows: hours × days
+  const rows = S.hours.map((h, hi) => {
+    const cells = days.map(di => {
+      if (isClass) {
+        const lessons = getLessonsAt(entity.id, di, hi);
+        if (!lessons.length) return `<td class="ph-cell ph-empty"></td>`;
+        if (lessons.length === 1) {
+          const l = lessons[0];
+          const hasConf = conf.has(l.key);
+          return `<td class="ph-cell${hasConf?' ph-conflict':''}">${buildPhCard(getAssign(l.assignmentId), l, hasConf)}</td>`;
+        }
+        // Multi-group
+        const cards = lessons.map(l => buildPhCard(getAssign(l.assignmentId), l, conf.has(l.key))).join('');
+        return `<td class="ph-cell"><div class="ph-multi">${cards}</div></td>`;
+      } else if (isTeacher) {
+        for (const c of S.classes) {
+          const lessons = getLessonsAt(c.id, di, hi);
+          for (const l of lessons) {
+            const a = getAssign(l.assignmentId);
+            if (a && a.teacherId === entity.id) {
+              const hasConf = conf.has(l.key);
+              return `<td class="ph-cell${hasConf?' ph-conflict':''}">${buildPhCard(a, l, hasConf, c.name)}</td>`;
+            }
+          }
+        }
+        return `<td class="ph-cell ph-empty"></td>`;
+      } else {
+        for (const c of S.classes) {
+          const lessons = getLessonsAt(c.id, di, hi);
+          for (const l of lessons) {
+            const a = getAssign(l.assignmentId);
+            if (a && a.roomId === entity.id) {
+              const hasConf = conf.has(l.key);
+              return `<td class="ph-cell${hasConf?' ph-conflict':''}">${buildPhCard(a, l, hasConf, c.name)}</td>`;
+            }
+          }
+        }
+        return `<td class="ph-cell ph-empty"></td>`;
+      }
+    }).join('');
+    return `<tr>
+      <td class="ph-hour-col"><span class="ph-hour-num">${h.num}</span><br><span class="ph-hour-time">${h.start}–${h.end}</span></td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="plachta-entity">
+    <div class="plachta-entity-header" style="background:${headerColor}">
+      <div class="ph-dot"></div>
+      <div class="ph-name">${esc(headerName)}</div>
+      <div class="ph-badge">${esc(headerBadge)}</div>
+    </div>
+    <div class="plachta-scroll">
+      <table class="plachta-tbl">
+        <thead><tr><th>Godz.</th>${dayHeaders}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function buildPhCard(assign, lesson, isConf, extraLabel) {
+  if (!assign) return '';
+  const subj = getSubject(assign.subjectId);
+  const teacher = getTeacher(assign.teacherId);
+  const room = getRoom(assign.roomId);
+  const color = subj && subj.color ? subj.color : '#94a3b8';
+  const sname = subj ? (subj.short || subj.name) : '?';
+  const tname = teacher ? (teacher.short || teacher.name.split(' ').pop()) : '';
+  const rname = room ? (room.short || room.name) : '';
+  const glabel = lesson && lesson.groupId ? (() => { const g = getSchoolGroup(lesson.groupId); return g ? g.name : ''; })() : '';
+  const groupHtml = glabel ? `<div class="ph-g" style="background:${color};color:#fff">${esc(glabel)}</div>` : '';
+  const extraHtml = extraLabel ? `<span style="color:var(--text3);font-weight:400;font-size:9px">[${esc(extraLabel)}] </span>` : '';
+  return `<div class="ph-card" style="border-left-color:${color};background:${hexRgba(color,0.08)}">
+    ${groupHtml}
+    <div class="ph-s" style="color:${color}">${extraHtml}${esc(sname)}</div>
+    ${tname ? `<div class="ph-t">${esc(tname)}</div>` : ''}
+    ${rname ? `<div class="ph-r">${esc(rname)}</div>` : ''}
+  </div>`;
+}
+
+function plachtaPrint() {
+  window.print();
 }
 
 // ── TOPBAR: przycisk "Strona główna" ─────────────────────
