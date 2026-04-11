@@ -53,7 +53,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .btn-danger{background:var(--red-dim);color:var(--red);border-color:#fca5a5}
 .btn-danger:hover{background:#fecaca}
 .btn-sm{padding:3px 8px;font-size:11px}
-.btn-icon{padding:4px 7px}
+.btn-icon{padding:4px 8px;font-size:13px;line-height:1}
 /* LEFT SIDEBAR */
 #sidebar-left{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
 .sb-section{border-bottom:1px solid var(--border)}
@@ -249,6 +249,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .ny-summary{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.7}
 .ny-summary strong{color:var(--text)}
 .ny-summary .ny-warn{color:var(--yellow);font-weight:600}
+.ny-warn{color:var(--yellow);font-weight:600}
 .ny-year-input{display:flex;align-items:center;gap:8px}
 .ny-year-input input{max-width:130px}
 
@@ -1028,7 +1029,7 @@ function renderTimetable(){
   const wrap=document.getElementById('timetable-wrapper');if(!wrap)return;
   const conf=detectConflicts();
   if(activeView==='class'){
-    if(!activeClassId){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div>Wybierz klasę z lewego panelu</div>';updateHeader();renderPool();return;}
+    if(!activeClassId){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div>Wybierz klasę z lewego panelu</div>';updateHeader(conf);renderPool();return;}
     wrap.innerHTML='';wrap.appendChild(buildTable((d,h)=>{
       const lessons=getLessonsAt(activeClassId,d,h);
       if(!lessons.length)return null;
@@ -1056,7 +1057,7 @@ function renderTimetable(){
       for(const c of S.classes){const l=getLesson(c.id,d,h);if(!l)continue;const a=getAssign(l.assignmentId);if(a&&a.roomId===activeViewId)return buildCard(a,l,lkey(c.id,d,h),conf.has(lkey(c.id,d,h)),c.name);}return null;
     }));
   }
-  updateHeader();renderPool();highlightSidebar();
+  updateHeader(conf);renderPool();highlightSidebar();
 }
 function buildTable(cellFn,viewId,viewType){
   const tbl=document.createElement('table');tbl.className='timetable';
@@ -1199,7 +1200,7 @@ function renderPool(){
     el.addEventListener('dragstart',e=>{dragData={assignId:el.dataset.assignId,fromKey:null,type:'pool'};e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData('text/plain',el.dataset.assignId);});
   });
 }
-function updateHeader(){
+function updateHeader(conf){
   const title=document.getElementById('view-title'),meta=document.getElementById('view-meta'),badge=document.getElementById('conflict-badge');
   if(activeView==='class'&&activeClassId){
     const cls=getClass(activeClassId);title.textContent=cls?'Klasa '+cls.name:'Plan lekcji';
@@ -1212,7 +1213,7 @@ function updateHeader(){
   }else if(activeView==='room'&&activeViewId){
     const r=getRoom(activeViewId);title.textContent=r?'Sala: '+r.name:'Plan sali';meta.textContent='';
   }else{title.textContent='Plan lekcji';meta.textContent='';}
-  const conf=detectConflicts();
+  if(!conf)conf=detectConflicts();
   if(badge){
     if(conf.size>0)badge.innerHTML='<span class="badge-conflict">\u26a0 '+conf.size+' konflikt'+(conf.size===1?'':'ów')+'</span>';
     else if(activeClassId||activeViewId)badge.innerHTML='<span class="badge-ok">\u2713 Brak konfliktów</span>';
@@ -1272,6 +1273,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(e.key==='Escape'){
       if(document.getElementById('aboutModal').classList.contains('open')){
         document.getElementById('aboutModal').classList.remove('open');return;
+      }
+      if(document.getElementById('wizardOverlay').classList.contains('open')){
+        wizardClose();return;
       }
       closeModal();
     }
@@ -2199,12 +2203,6 @@ function welcomeCopyYear() {
   showNewYear();
 }
 
-function incrementYear(y) {
-  const m = y.match(/(\d{4})\/(\d{4})/);
-  if (!m) return y;
-  return (parseInt(m[1])+1) + '/' + (parseInt(m[2])+1);
-}
-
 function welcomeImportClick() {
   document.getElementById('wlFileInput').click();
 }
@@ -2287,7 +2285,6 @@ function buildDemoData() {
 }
 
 // ── KREATOR ─────────────────────────────────────────────
-function wizUid() { return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
 
 function wizOpen(fromCopy) {
   if (!fromCopy) {
