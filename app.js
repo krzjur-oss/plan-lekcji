@@ -158,11 +158,11 @@ function renderTimetable(){
     attachDrop(wrap,activeClassId);
   }else if(activeView==='teacher'){
     wrap.innerHTML='';wrap.appendChild(buildTable((d,h)=>{
-      for(const c of S.classes){const l=getLesson(c.id,d,h);if(!l)continue;const a=getAssign(l.assignmentId);if(a&&a.teacherId===activeViewId)return buildCard(a,l,lkey(c.id,d,h),conf.has(lkey(c.id,d,h)),c.name);}return null;
+      for(const c of S.classes){const lessons=getLessonsAt(c.id,d,h);for(const l of lessons){const a=getAssign(l.assignmentId);if(a&&a.teacherId===activeViewId)return buildCard(a,l,l.key,conf.has(l.key),c.name);}}return null;
     }));
   }else if(activeView==='room'){
     wrap.innerHTML='';wrap.appendChild(buildTable((d,h)=>{
-      for(const c of S.classes){const l=getLesson(c.id,d,h);if(!l)continue;const a=getAssign(l.assignmentId);if(a&&a.roomId===activeViewId)return buildCard(a,l,lkey(c.id,d,h),conf.has(lkey(c.id,d,h)),c.name);}return null;
+      for(const c of S.classes){const lessons=getLessonsAt(c.id,d,h);for(const l of lessons){const a=getAssign(l.assignmentId);if(a&&a.roomId===activeViewId)return buildCard(a,l,l.key,conf.has(l.key),c.name);}}return null;
     }));
   }
   updateHeader(conf);renderPool();highlightSidebar();
@@ -226,12 +226,10 @@ function attachDrop(wrap,classId){
       const toKey=lkey(classId,d,h,dropGroupId);
       if(dragData.type==='grid'&&dragData.fromKey&&dragData.fromKey!==toKey){
         const existing=S.lessons[toKey];
-        // Przy wymianie przywróć źródłową lekcję pod oryginalny klucz
-        const fromAssign=getAssign((S.lessons[dragData.fromKey]||{}).assignmentId);
-        const fromGroupId=fromAssign&&fromAssign.groupId?fromAssign.groupId:null;
-        const restoredKey=lkey(classId,d,h,fromGroupId);
-        if(existing){S.lessons[restoredKey]={...existing};}
-        else{delete S.lessons[dragData.fromKey];}
+        // Przy wymianie przywróć lekcję z celu pod klucz źródłowy (fromKey)
+        // Uwaga: fromKey zawiera już poprawne classId|day|hour[|groupId] źródła
+        delete S.lessons[dragData.fromKey];
+        if(existing){S.lessons[dragData.fromKey]={...existing};}
       }
       setLesson(classId,d,h,dragData.assignId,dropGroupId);dragData=null;
       renderTimetable();renderSidebar();notify('Lekcja umieszczona','success');
@@ -1210,7 +1208,7 @@ function exportCSV(classId){
   const rows=[['Lekcja',...DAYS]];
   S.hours.forEach((h,hi)=>{
     const row=[`${h.num}. ${h.start}-${h.end}`];
-    DAYS.forEach((_,di)=>{const l=getLesson(classId,di,hi);if(l){const a=getAssign(l.assignmentId);const s=getSubject(a?a.subjectId:null);const t=getTeacher(a?a.teacherId:null);const r=getRoom(a?a.roomId:null);row.push(`${s?s.name:''}${t?' ('+t.name+')':''}${r?' ['+r.name+']':''}`);}else row.push('');});
+    DAYS.forEach((_,di)=>{const ls=getLessonsAt(classId,di,hi);if(ls.length){const parts=ls.map(l=>{const a=getAssign(l.assignmentId);const s=getSubject(a?a.subjectId:null);const t=getTeacher(a?a.teacherId:null);const r=getRoom(a?a.roomId:null);const g=l.groupId?getSchoolGroup(l.groupId):null;return`${s?s.name:''}${g?' ['+g.name+']':''}${t?' ('+t.name+')':''}${r?' ['+r.name+']':''}`;});row.push(parts.join(' | '));}else row.push('');});
     rows.push(row);
   });
   dl('\uFEFF'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n'),`plan_${cls.name}_${Date.now()}.csv`,'text/csv;charset=utf-8');
@@ -1263,6 +1261,7 @@ function closeMobileSidebar(){
 // ═══════════════════════════════════════════════════════
 const WIZ_DRAFT_KEY = 'planlekcji_wiz_draft';
 const WIZ_STEPS = 6;
+function wizUid() { return uid(); }
 let wizCurrentStep = 0;
 let wizDraftTimer = null;
 
@@ -1781,7 +1780,7 @@ function wizFinish() {
     color: COLORS[Math.floor(Math.random() * COLORS.length)]
   }));
   S.teachers = wizData.teachers.map(t => ({
-    id: uid(), first: t.first, last: t.last,
+    id: uid(), firstname: t.first, lastname: t.last,
     name: (t.first + ' ' + t.last).trim(),
     short: t.short || (t.first[0]||'') + t.last.slice(0,3).toUpperCase()
   }));
