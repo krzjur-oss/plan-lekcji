@@ -316,9 +316,421 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
     background: rgba(0,0,0,.3);
   }
 }
+
+/* ══════════════════════════════════════════
+   STRONA POWITALNA
+══════════════════════════════════════════ */
+#welcomeScreen{position:fixed;inset:0;z-index:2000;background:var(--bg);overflow-y:auto;display:none;flex-direction:column;}
+#welcomeScreen.open{display:flex;}
+.wl-hero{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#3b82f6 100%);padding:40px 24px 32px;text-align:center;color:#fff;position:relative;overflow:hidden;}
+.wl-hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");}
+.wl-hero-logo{font-size:34px;font-weight:800;letter-spacing:-1.5px;margin-bottom:10px;position:relative;}
+.wl-hero-logo span{color:rgba(255,255,255,.6);font-weight:400;}
+.wl-hero-tagline{font-size:13.5px;opacity:.85;max-width:500px;margin:0 auto 18px;line-height:1.65;position:relative;}
+.wl-hero-badges{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;position:relative;}
+.wl-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:3px 13px;font-size:11.5px;font-weight:500;}
+.wl-body{max-width:780px;margin:0 auto;padding:28px 20px 48px;width:100%;}
+.wl-section-title{font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;margin-top:30px;}
+.wl-section-title:first-child{margin-top:0;}
+.wl-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+@media(max-width:520px){.wl-cards{grid-template-columns:1fr;}}
+.wl-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r-lg);padding:18px 16px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:4px;}
+.wl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);opacity:0;transition:opacity .18s;}
+.wl-card:hover{border-color:var(--accent);box-shadow:var(--shadow-md);transform:translateY(-2px);}
+.wl-card:hover::before{opacity:1;}
+.wl-card-icon{font-size:28px;margin-bottom:4px;}
+.wl-card-title{font-size:14px;font-weight:700;color:var(--text);}
+.wl-card-desc{font-size:12px;color:var(--text3);line-height:1.55;flex:1;}
+.wl-card-tag{display:inline-block;margin-top:10px;font-size:10.5px;font-weight:600;padding:2px 10px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg3);color:var(--text3);}
+.wl-card-tag.green{color:var(--green);border-color:var(--green);background:var(--green-dim);}
+.wl-card-tag.orange{color:var(--yellow);border-color:var(--yellow);background:var(--yellow-dim);}
+.wl-card-tag.purple{color:var(--purple);border-color:var(--purple);background:#f3f0ff;}
+.wl-bottom-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px;}
+.wl-about-btn{padding:7px 18px;border-radius:var(--r-md);border:1.5px solid var(--border2);background:#fff;color:var(--text2);font-size:12.5px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.wl-about-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.wl-features{display:flex;flex-direction:column;gap:2px;}
+.wl-feature-row{display:flex;align-items:flex-start;gap:12px;padding:9px 12px;border-radius:var(--r);font-size:12.5px;color:var(--text2);line-height:1.5;transition:background .12s;}
+.wl-feature-row:hover{background:var(--bg3);}
+.wl-feature-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+
+/* ══════════════════════════════════════════
+   KREATOR (WIZARD)
+══════════════════════════════════════════ */
+#wizardOverlay{position:fixed;inset:0;z-index:2100;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);display:none;align-items:stretch;justify-content:flex-end;}
+#wizardOverlay.open{display:flex;}
+#wizardPanel{background:#fff;width:100%;max-width:680px;height:100%;display:flex;flex-direction:column;box-shadow:-8px 0 40px rgba(0,0,0,.18);animation:wiz-slide-in .25s ease;overflow:hidden;}
+@keyframes wiz-slide-in{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@media(max-width:700px){#wizardPanel{max-width:100%;}}
+.wiz-header{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);padding:20px 24px 16px;color:#fff;flex-shrink:0;}
+.wiz-badge{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin-bottom:4px;}
+.wiz-title{font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.wiz-subtitle{font-size:12px;opacity:.8;margin-top:3px;}
+.wiz-steps{display:flex;align-items:center;padding:14px 20px;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+.wiz-steps::-webkit-scrollbar{display:none;}
+.wstep{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;}
+.wstep-num{width:26px;height:26px;border-radius:50%;background:var(--border2);color:var(--text3);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.wstep.active .wstep-num{background:var(--accent);color:#fff;}
+.wstep.done .wstep-num{background:var(--green);color:#fff;}
+.wstep-label{font-size:10px;font-weight:600;color:var(--text3);white-space:nowrap;transition:color .2s;}
+.wstep.active .wstep-label{color:var(--accent);}
+.wstep.done .wstep-label{color:var(--green);}
+.wstep-line{flex:1;height:2px;background:var(--border);margin:0 4px 13px;transition:background .2s;min-width:14px;}
+.wstep-line.done{background:var(--green);}
+.wiz-body{flex:1;overflow-y:auto;padding:20px 24px;}
+.wiz-step{display:none;}
+.wiz-step.active{display:block;}
+.wcard{background:#fff;border:1.5px solid var(--border);border-radius:var(--r-lg);padding:18px 18px 14px;margin-bottom:14px;}
+.wcard-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.wcard-desc{font-size:11.5px;color:var(--text3);margin-bottom:14px;line-height:1.65;}
+.form-group-w{margin-bottom:12px;}
+.form-group-w:last-child{margin-bottom:0;}
+.form-label-w{display:block;font-size:10.5px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;}
+.big-input{width:100%;background:#fff;border:1.5px solid var(--border2);border-radius:var(--r);color:var(--text);padding:8px 11px;font-family:var(--sans);font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s;}
+.big-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+.big-input::placeholder{color:var(--text3);}
+.wiz-footer{padding:13px 24px;border-top:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;}
+.wiz-footer-left{display:flex;flex-direction:column;gap:2px;}
+.wiz-footer-info{font-size:11px;color:var(--text3);}
+.wiz-autosave{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px;}
+.wiz-btns{display:flex;gap:8px;}
+.wiz-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.wiz-row{display:grid;gap:6px;align-items:center;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);}
+.wiz-row input{border:1px solid var(--border2);border-radius:var(--r);padding:4px 8px;font-size:12px;font-family:var(--sans);color:var(--text);background:#fff;outline:none;width:100%;}
+.wiz-row input:focus{border-color:var(--accent);}
+.wiz-row-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px 5px;border-radius:4px;line-height:1;transition:all .12s;}
+.wiz-row-del:hover{background:var(--red-dim);color:var(--red);}
+.wiz-add-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--r);border:1.5px dashed var(--border2);background:#fff;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s;margin-top:8px;width:100%;}
+.wiz-add-btn:hover{border-color:var(--accent);background:var(--accent-dim);}
+.wiz-col-header{display:grid;gap:6px;padding:0 10px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-top:12px;}
+.wiz-count-badge{display:inline-flex;align-items:center;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-mid);border-radius:20px;font-size:10.5px;font-weight:600;padding:1px 10px;margin-top:8px;}
+.wiz-drop-zone{border:2px dashed var(--border2);border-radius:var(--r-md);padding:16px;text-align:center;color:var(--text3);font-size:12px;cursor:pointer;transition:all .2s;margin-bottom:10px;position:relative;}
+.wiz-drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.wiz-drop-zone:hover,.wiz-drop-zone.drag-over{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+.wiz-drop-icon{font-size:20px;margin-bottom:4px;}
+.wiz-drop-label{font-weight:600;margin-bottom:2px;}
+.wiz-drop-sub{font-size:10.5px;color:var(--text3);}
+.wiz-hour-row{display:grid;grid-template-columns:32px 1fr auto 1fr auto;gap:6px;align-items:center;padding:5px 8px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);}
+.wiz-hour-num{font-family:var(--mono);font-weight:700;color:var(--accent);text-align:center;font-size:13px;}
+.wiz-hour-sep{color:var(--text3);font-size:12px;text-align:center;}
+.wiz-time-input{width:76px;background:#fff;border:1px solid var(--border2);border-radius:var(--r);color:var(--text);padding:4px 7px;font-family:var(--mono);font-size:12px;outline:none;}
+.wiz-time-input:focus{border-color:var(--accent);}
+.wiz-summary{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;font-size:12.5px;color:var(--text2);line-height:2;}
+.wiz-summary strong{color:var(--text);}
+.wiz-summary-row{display:flex;align-items:center;gap:8px;}
+
+/* Draft resume modal */
+#wizDraftModal{position:fixed;inset:0;z-index:2200;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;}
+#wizDraftModal.open{display:flex;}
+.wiz-draft-box{background:#fff;border-radius:var(--r-lg);padding:28px 28px 22px;box-shadow:var(--shadow-lg);max-width:440px;width:90%;text-align:center;}
+.wiz-draft-box h3{font-size:16px;margin-bottom:8px;}
+.wiz-draft-meta{font-size:11.5px;color:var(--text3);margin-bottom:20px;}
+.wiz-draft-btns{display:flex;flex-direction:column;gap:8px;}
+
+/* About modal */
+.about-version-table{width:100%;border-collapse:collapse;font-size:12px;}
+.about-version-table td{padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text2);}
+.about-version-table td:first-child{color:var(--text3);width:160px;}
+.about-feature-list{display:flex;flex-direction:column;gap:6px;}
+.about-feature-row{display:flex;align-items:flex-start;gap:10px;font-size:12.5px;color:var(--text2);line-height:1.5;padding:2px 0;}
+.about-section{margin-bottom:20px;}
+.about-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:6px;border-bottom:1.5px solid var(--border);}
+.about-kbd{display:inline-flex;align-items:center;padding:2px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;font-family:var(--mono);font-size:11px;color:var(--text);font-weight:600;min-width:80px;justify-content:center;flex-shrink:0;}
+
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════
+     STRONA POWITALNA
+═══════════════════════════════════════════ -->
+<div id="welcomeScreen">
+  <div class="wl-hero">
+    <div class="wl-hero-logo">Plan<span>Lekcji</span></div>
+    <p class="wl-hero-tagline">Aplikacja do układania i zarządzania planem lekcji dla szkół. Przypisuj nauczycieli, przedmioty i sale — szybko i przejrzyście.</p>
+    <div class="wl-hero-badges">
+      <span class="wl-badge">📱 PWA — działa offline</span>
+      <span class="wl-badge">👥 Grupy i podgrupy</span>
+      <span class="wl-badge">⚠ Wykrywanie kolizji</span>
+      <span class="wl-badge">📊 Statystyki godzin</span>
+    </div>
+  </div>
+  <div class="wl-body">
+    <p class="wl-section-title" style="margin-top:0">Co chcesz zrobić?</p>
+    <div class="wl-cards">
+      <div class="wl-card" onclick="welcomeStartNew()">
+        <div class="wl-card-icon">✨</div>
+        <div class="wl-card-title">Utwórz nowy plan</div>
+        <div class="wl-card-desc">Skonfiguruj szkołę, nauczycieli, klasy, sale i przedmioty od zera.</div>
+        <span class="wl-card-tag green">Kreator krok po kroku</span>
+      </div>
+      <div class="wl-card" id="wlCardCopy" onclick="welcomeCopyYear()" style="display:none">
+        <div class="wl-card-icon">📋</div>
+        <div class="wl-card-title">Nowy rok szkolny</div>
+        <div class="wl-card-desc">Skopiuj konfigurację szkoły, nauczycieli i klas z bieżącego roku.</div>
+        <span class="wl-card-tag orange">Na podstawie istniejącego</span>
+      </div>
+      <div class="wl-card" onclick="welcomeImportClick()">
+        <div class="wl-card-icon">📂</div>
+        <div class="wl-card-title">Importuj z pliku</div>
+        <div class="wl-card-desc">Wczytaj plan z pliku .json — od innej osoby lub z poprzedniej sesji.</div>
+        <span class="wl-card-tag purple">Współpraca</span>
+      </div>
+      <div class="wl-card" onclick="welcomeDemo()">
+        <div class="wl-card-icon">🎬</div>
+        <div class="wl-card-title">Wersja demo</div>
+        <div class="wl-card-desc">Zapoznaj się z możliwościami na przykładowych danych fikcyjnej szkoły.</div>
+        <span class="wl-card-tag">Podgląd bez zapisu</span>
+      </div>
+    </div>
+    <div class="wl-bottom-btns">
+      <button class="wl-about-btn" id="wlCurrentPlanBtn" onclick="hideWelcomeScreen()" style="display:none">📋 Aktualny plan</button>
+      <button class="wl-about-btn" onclick="showAboutModal()">ℹ️ O programie</button>
+    </div>
+    <input type="file" id="wlFileInput" accept=".json" style="display:none" onchange="welcomeHandleFile(this.files[0]);this.value=''">
+    <p class="wl-section-title">Co możesz robić w PlanLekcji?</p>
+    <div class="wl-features">
+      <div class="wl-feature-row"><span class="wl-feature-icon">📅</span><span>Układaj plan lekcji dla wielu klas — przypisuj nauczyciela, salę i przedmiot do każdej godziny</span></div>
+      <div class="wl-feature-row"><span class="wl-feature-icon">👥</span><span>Obsługa grup i podgrup — jedna klasa może dzielić się na wiele grup jednocześnie</span></div>
+      <div class="wl-feature-row"><span class="wl-feature-icon">⚠</span><span>Automatyczne wykrywanie kolizji — ten sam nauczyciel lub sala w dwóch miejscach naraz</span></div>
+      <div class="wl-feature-row"><span class="wl-feature-icon">📊</span><span>Statystyki obciążenia nauczycieli — śledź liczbę godzin i realizację pensum</span></div>
+      <div class="wl-feature-row"><span class="wl-feature-icon">🔄</span><span>Eksport i import JSON — współpracuj z innymi, twórz kopie zapasowe</span></div>
+      <div class="wl-feature-row"><span class="wl-feature-icon">🖱️</span><span>Przeciąganie lekcji — przesuń lekcję na inną godzinę lub dzień jednym ruchem</span></div>
+      <div class="wl-feature-row"><span class="wl-feature-icon">📱</span><span>PWA — zainstaluj jako aplikację, pracuj bez internetu</span></div>
+    </div>
+  </div>
+</div>
+<!-- /STRONA POWITALNA -->
+
+<!-- ═══════════════════════════════════════════
+     KREATOR
+═══════════════════════════════════════════ -->
+<div id="wizDraftModal">
+  <div class="wiz-draft-box">
+    <h3>📝 Znaleziono niezakończony kreator</h3>
+    <div class="wiz-draft-meta" id="wizDraftMeta">Ostatni zapis: —</div>
+    <div class="wiz-draft-btns">
+      <button class="btn btn-primary" onclick="wizDraftResume()">↩ Wznów — kontynuuj od miejsca przerwania</button>
+      <button class="btn btn-ghost" onclick="wizDraftDiscard()">🗑 Zacznij od nowa — usuń szkic</button>
+    </div>
+  </div>
+</div>
+
+<div id="wizardOverlay" onclick="wizBackdropClick(event)">
+  <div id="wizardPanel">
+    <div class="wiz-header">
+      <div class="wiz-badge">✦ Kreator konfiguracji</div>
+      <div class="wiz-title">Nowy rok szkolny</div>
+      <div class="wiz-subtitle">Skonfiguruj szkołę, nauczycieli, klasy i sale — zajmie to tylko chwilę.</div>
+    </div>
+    <div class="wiz-steps" id="wizSteps">
+      <div class="wstep active" id="ws0"><div class="wstep-num">1</div><div class="wstep-label">Szkoła</div></div>
+      <div class="wstep-line" id="wl0"></div>
+      <div class="wstep" id="ws1"><div class="wstep-num">2</div><div class="wstep-label">Klasy</div></div>
+      <div class="wstep-line" id="wl1"></div>
+      <div class="wstep" id="ws2"><div class="wstep-num">3</div><div class="wstep-label">Nauczyciele</div></div>
+      <div class="wstep-line" id="wl2"></div>
+      <div class="wstep" id="ws3"><div class="wstep-num">4</div><div class="wstep-label">Sale</div></div>
+      <div class="wstep-line" id="wl3"></div>
+      <div class="wstep" id="ws4"><div class="wstep-num">5</div><div class="wstep-label">Przedmioty</div></div>
+      <div class="wstep-line" id="wl4"></div>
+      <div class="wstep" id="ws5"><div class="wstep-num">6</div><div class="wstep-label">Godziny</div></div>
+    </div>
+    <div class="wiz-body">
+
+      <!-- KROK 1: Szkoła -->
+      <div class="wiz-step active" id="wStep0">
+        <div class="wcard">
+          <div class="wcard-title">🏫 Informacje o szkole</div>
+          <div class="wcard-desc">Podaj nazwę szkoły — pojawi się w nagłówku aplikacji.</div>
+          <div class="form-group-w">
+            <label class="form-label-w">Pełna nazwa szkoły</label>
+            <input type="text" class="big-input" id="wSchoolName" placeholder="np. Liceum Ogólnokształcące nr 5">
+          </div>
+          <div class="form-group-w">
+            <label class="form-label-w">Skrót (opcjonalnie)</label>
+            <input type="text" class="big-input" id="wSchoolShort" placeholder="np. LO5">
+          </div>
+        </div>
+        <div class="wcard">
+          <div class="wcard-title">🗓 Rok szkolny</div>
+          <div class="wcard-desc">Podaj rok szkolny dla nowego planu.</div>
+          <div class="form-group-w">
+            <input type="text" class="big-input" id="wYear" placeholder="np. 2025/2026" value="2025/2026">
+          </div>
+        </div>
+      </div>
+
+      <!-- KROK 2: Klasy -->
+      <div class="wiz-step" id="wStep1">
+        <div class="wcard">
+          <div class="wcard-title">🎓 Klasy</div>
+          <div class="wcard-desc">Dodaj klasy ręcznie lub zaimportuj z pliku .txt (jedna klasa na linię).</div>
+          <div class="wiz-drop-zone" id="wClassDropZone"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="wizHandleClassDrop(event)">
+            <input type="file" accept=".txt,text/plain" onchange="wizReadClassFile(this)">
+            <div class="wiz-drop-icon">📋</div>
+            <div class="wiz-drop-label">Przeciągnij plik .txt lub kliknij, aby wybrać</div>
+            <div class="wiz-drop-sub">Format: NazwaKlasy — jedna klasa na linię</div>
+          </div>
+          <div class="wiz-col-header" style="grid-template-columns:1fr 80px auto">
+            <span>Nazwa klasy</span><span>Skrót</span><span></span>
+          </div>
+          <div class="wiz-list" id="wClassList"></div>
+          <button class="wiz-add-btn" onclick="wizAddClass()">＋ Dodaj klasę</button>
+          <div style="margin-top:8px"><span class="wiz-count-badge" id="wClassCount">0 klas</span></div>
+        </div>
+      </div>
+
+      <!-- KROK 3: Nauczyciele -->
+      <div class="wiz-step" id="wStep2">
+        <div class="wcard">
+          <div class="wcard-title">👨‍🏫 Nauczyciele</div>
+          <div class="wcard-desc">Wpisz nauczycieli ręcznie lub zaimportuj z pliku .txt.<br>Format: <code style="font-family:var(--mono)">Imię Nazwisko</code> — jeden nauczyciel na linię. Skrót generowany automatycznie.</div>
+          <div class="wiz-drop-zone" id="wTeacherDropZone"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="wizHandleTeacherDrop(event)">
+            <input type="file" accept=".txt,text/plain" onchange="wizReadTeacherFile(this)">
+            <div class="wiz-drop-icon">📄</div>
+            <div class="wiz-drop-label">Przeciągnij plik .txt lub kliknij, aby wybrać</div>
+            <div class="wiz-drop-sub">Format: Imię Nazwisko • jeden nauczyciel na linię</div>
+          </div>
+          <div class="wiz-col-header" style="grid-template-columns:1fr 1fr 80px auto">
+            <span>Imię</span><span>Nazwisko</span><span>Skrót</span><span></span>
+          </div>
+          <div class="wiz-list" id="wTeacherList"></div>
+          <button class="wiz-add-btn" onclick="wizAddTeacher()">＋ Dodaj nauczyciela</button>
+          <div style="margin-top:8px"><span class="wiz-count-badge" id="wTeacherCount">0 nauczycieli</span></div>
+        </div>
+      </div>
+
+      <!-- KROK 4: Sale -->
+      <div class="wiz-step" id="wStep3">
+        <div class="wcard">
+          <div class="wcard-title">🏫 Sale lekcyjne</div>
+          <div class="wcard-desc">Dodaj sale ręcznie lub zaimportuj z pliku .txt.<br>Format: <code style="font-family:var(--mono)">NazwaSali;Opis</code> — jedna sala na linię. Opis jest opcjonalny.</div>
+          <div class="wiz-drop-zone" id="wRoomDropZone"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="wizHandleRoomDrop(event)">
+            <input type="file" accept=".txt,text/plain" onchange="wizReadRoomFile(this)">
+            <div class="wiz-drop-icon">🚪</div>
+            <div class="wiz-drop-label">Przeciągnij plik .txt lub kliknij, aby wybrać</div>
+            <div class="wiz-drop-sub">Format: NazwaSali;Opis — jedna sala na linię</div>
+          </div>
+          <div class="wiz-col-header" style="grid-template-columns:120px 1fr auto">
+            <span>Numer / Nazwa</span><span>Opis</span><span></span>
+          </div>
+          <div class="wiz-list" id="wRoomList"></div>
+          <button class="wiz-add-btn" onclick="wizAddRoom()">＋ Dodaj salę</button>
+          <div style="margin-top:8px"><span class="wiz-count-badge" id="wRoomCount">0 sal</span></div>
+        </div>
+      </div>
+
+      <!-- KROK 5: Przedmioty -->
+      <div class="wiz-step" id="wStep4">
+        <div class="wcard">
+          <div class="wcard-title">📚 Przedmioty</div>
+          <div class="wcard-desc">Dodaj przedmioty nauczane w szkole. Ten krok jest <strong>opcjonalny</strong> — możesz dodać przedmioty później w zakładce Dane.<br>Format pliku: <code style="font-family:var(--mono)">Przedmiot;Skrót</code></div>
+          <div class="wiz-drop-zone" id="wSubjectDropZone"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="wizHandleSubjectDrop(event)">
+            <input type="file" accept=".txt,text/plain" onchange="wizReadSubjectFile(this)">
+            <div class="wiz-drop-icon">📚</div>
+            <div class="wiz-drop-label">Przeciągnij plik .txt lub kliknij, aby wybrać</div>
+            <div class="wiz-drop-sub">Format: Przedmiot;Skrót — jeden przedmiot na linię</div>
+          </div>
+          <div class="wiz-col-header" style="grid-template-columns:1fr 80px auto">
+            <span>Nazwa przedmiotu</span><span>Skrót</span><span></span>
+          </div>
+          <div class="wiz-list" id="wSubjectList"></div>
+          <button class="wiz-add-btn" onclick="wizAddSubject()">＋ Dodaj przedmiot</button>
+          <div style="margin-top:8px"><span class="wiz-count-badge" id="wSubjectCount">0 przedmiotów</span></div>
+        </div>
+      </div>
+
+      <!-- KROK 6: Godziny + Podsumowanie -->
+      <div class="wiz-step" id="wStep5">
+        <div class="wcard">
+          <div class="wcard-title">⏱ Godziny lekcyjne</div>
+          <div class="wcard-desc">Ustaw godziny lekcyjne lub zostaw domyślne. Możesz je zmienić w dowolnym momencie w zakładce Ustawienia.</div>
+          <div class="wiz-list" id="wHoursList" style="gap:5px"></div>
+          <button class="wiz-add-btn" onclick="wizAddHour()">＋ Dodaj godzinę lekcyjną</button>
+        </div>
+        <div class="wcard">
+          <div class="wcard-title">✅ Podsumowanie</div>
+          <div class="wcard-desc">Sprawdź dane przed zakończeniem. Wszystko możesz edytować po starcie w zakładce Dane.</div>
+          <div class="wiz-summary" id="wizSummary">—</div>
+        </div>
+      </div>
+
+    </div><!-- /wiz-body -->
+    <div class="wiz-footer">
+      <div class="wiz-footer-left">
+        <div class="wiz-footer-info" id="wizFooterInfo">Krok 1 z 6</div>
+        <div class="wiz-autosave" id="wizAutosaveStatus">💾 Autosave aktywny</div>
+      </div>
+      <div class="wiz-btns">
+        <button class="btn btn-ghost" id="wBtnClose" onclick="wizardClose()">✕ Zamknij</button>
+        <button class="btn btn-ghost" id="wBtnBack" onclick="wizardBack()" style="display:none">← Wstecz</button>
+        <button class="btn btn-primary" id="wBtnNext" onclick="wizardNext()">Dalej →</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- /KREATOR -->
+
+<!-- Modal: O programie -->
+<div class="modal-overlay" id="aboutModal">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <span class="modal-title">ℹ️ O programie PlanLekcji</span>
+      <button class="modal-close" onclick="document.getElementById('aboutModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="about-section">
+        <div class="about-section-title">Informacje o wersji</div>
+        <table class="about-version-table">
+          <tr><td>Wersja</td><td><strong>v1.0.0</strong></td></tr>
+          <tr><td>Ostatnia aktualizacja</td><td>11 kwietnia 2026</td></tr>
+          <tr><td>Technologia</td><td>HTML + CSS + JavaScript (bez frameworków)</td></tr>
+          <tr><td>Dane</td><td>localStorage — brak serwera, pełna prywatność</td></tr>
+          <tr><td>Tryb offline</td><td>Service Worker — działa bez internetu</td></tr>
+        </table>
+      </div>
+      <div class="about-section">
+        <div class="about-section-title">Funkcje aplikacji</div>
+        <div class="about-feature-list">
+          <div class="about-feature-row"><span>📅</span><span>Układanie planu lekcji dla wielu klas jednocześnie</span></div>
+          <div class="about-feature-row"><span>👥</span><span>Obsługa grup i podgrup — równoległe zajęcia w jednej klasie</span></div>
+          <div class="about-feature-row"><span>⚠</span><span>Automatyczne wykrywanie kolizji nauczycieli, sal i grup</span></div>
+          <div class="about-feature-row"><span>📊</span><span>Statystyki obciążenia nauczycieli i postępu planu</span></div>
+          <div class="about-feature-row"><span>🖱️</span><span>Przeciąganie lekcji między godzinami i dniami</span></div>
+          <div class="about-feature-row"><span>🔄</span><span>Eksport/import JSON — kopie zapasowe i współpraca</span></div>
+          <div class="about-feature-row"><span>📱</span><span>PWA — instalacja jako aplikacja, praca offline</span></div>
+        </div>
+      </div>
+      <div class="about-section">
+        <div class="about-section-title">Skróty klawiszowe</div>
+        <div class="about-feature-list">
+          <div class="about-feature-row"><span class="about-kbd">Ctrl+S</span><span>Zapisz plan</span></div>
+          <div class="about-feature-row"><span class="about-kbd">Esc</span><span>Zamknij okno / modal</span></div>
+        </div>
+      </div>
+      <div class="about-section">
+        <div class="about-section-title">Prywatność</div>
+        <p style="font-size:12.5px;color:var(--text2);line-height:1.65">Aplikacja nie zbiera, nie wysyła ani nie przechowuje żadnych danych zewnętrznie. Wszystkie dane zapisywane są wyłącznie w localStorage przeglądarki.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="document.getElementById('aboutModal').classList.remove('open')">Zamknij</button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
 <!-- TOPBAR -->
 <header id="topbar">
@@ -331,6 +743,8 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
   </nav>
   <div class="top-actions">
     <button id="btn-install" class="btn btn-ghost" onclick="installPWA()" style="display:none">⬇ Zainstaluj</button>
+    <button class="btn btn-ghost" onclick="showAboutModal()" title="O programie">ℹ️</button>
+    <button class="btn btn-ghost" onclick="goHome()">🏠 Strona główna</button>
     <button class="btn btn-ghost" onclick="showNewYear()">📋 Kopiuj plan</button>
     <button class="btn btn-ghost" onclick="showImportExport()">⇅ Import / Eksport</button>
     <button class="btn btn-primary" onclick="doSave()">💾 Zapisz</button>
@@ -847,11 +1261,28 @@ function installPWA() {
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  loadState();if(!S.schoolGroups)S.schoolGroups=[];renderAll();renderHours();applySettings();requestAnimationFrame(()=>switchDataTab('classes'));
+  loadState();
+  if(!S.schoolGroups)S.schoolGroups=[];
+  renderAll();renderHours();applySettings();
+  requestAnimationFrame(()=>switchDataTab('classes'));
   if(S.classes.length)setActiveClass(S.classes[0].id);
   if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
   setInterval(()=>{saveState();},30000);
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();doSave();}});
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+      if(document.getElementById('aboutModal').classList.contains('open')){
+        document.getElementById('aboutModal').classList.remove('open');return;
+      }
+      closeModal();
+    }
+    if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();doSave();}
+  });
+  // Pokaż stronę startową przy pierwszym uruchomieniu lub braku danych
+  const hasData = S.classes.length > 0 || S.teachers.length > 0 || S.rooms.length > 0;
+  if(!hasData){
+    showWelcomeScreen();
+  }
+  // Sprawdź szkic kreatora (tylko gdy nie ma danych i nie otwieramy kreatora)
 });
 function doSave(){saveState();notify('Zapisano \u2713','success');}
 function renderAll(){renderSidebar();renderTimetable();}
@@ -1712,6 +2143,621 @@ function closeMobileSidebar(){
   if(sb)sb.classList.remove('mobile-open');
   if(ov)ov.style.display='none';
 }
+
+// ═══════════════════════════════════════════════════════
+// STRONA POWITALNA + KREATOR
+// ═══════════════════════════════════════════════════════
+const WIZ_DRAFT_KEY = 'planlekcji_wiz_draft';
+const WIZ_STEPS = 6;
+let wizCurrentStep = 0;
+let wizDraftTimer = null;
+
+// Dane tymczasowe kreatora
+let wizData = {
+  schoolName: '', schoolShort: '', year: '2025/2026',
+  classes: [],    // {id, name, short}
+  teachers: [],   // {id, first, last, short}
+  rooms: [],      // {id, name, desc}
+  subjects: [],   // {id, name, short, color}
+  hours: []       // {num, start, end}
+};
+
+// ── STRONA POWITALNA ────────────────────────────────────
+function showWelcomeScreen() {
+  const ws = document.getElementById('welcomeScreen');
+  ws.classList.add('open');
+  // Pokaż "Aktualny plan" jeśli są dane
+  const hasData = S.classes.length > 0 || S.teachers.length > 0;
+  document.getElementById('wlCurrentPlanBtn').style.display = hasData ? '' : 'none';
+  // Pokaż "Nowy rok szkolny" jeśli są dane
+  document.getElementById('wlCardCopy').style.display = hasData ? '' : 'none';
+}
+
+function hideWelcomeScreen() {
+  document.getElementById('welcomeScreen').classList.remove('open');
+}
+
+function showAboutModal() {
+  document.getElementById('aboutModal').classList.add('open');
+}
+
+function welcomeStartNew() {
+  // Sprawdź czy jest szkic
+  const draft = wizLoadDraft();
+  if (draft) {
+    document.getElementById('wizDraftMeta').textContent =
+      'Ostatni zapis: ' + (draft.savedAt ? new Date(draft.savedAt).toLocaleString('pl') : '—');
+    document.getElementById('wizDraftModal').classList.add('open');
+    return;
+  }
+  wizOpen(false);
+}
+
+function welcomeCopyYear() {
+  // Kopiuj dane ze stanu aplikacji do kreatora i otwórz
+  wizData = {
+    schoolName: S.meta.schoolName || '',
+    schoolShort: S.meta.schoolShort || '',
+    year: incrementYear(S.meta.year || '2025/2026'),
+    classes: S.classes.map(c => ({id: wizUid(), name: c.name, short: c.short || c.name})),
+    teachers: S.teachers.map(t => ({id: wizUid(), first: t.first || '', last: t.last || t.name || '', short: t.short || ''})),
+    rooms: S.rooms.map(r => ({id: wizUid(), name: r.name, desc: r.desc || ''})),
+    subjects: S.subjects.map(s => ({id: wizUid(), name: s.name, short: s.short || '', color: s.color || COLORS[0]})),
+    hours: JSON.parse(JSON.stringify(S.hours))
+  };
+  wizOpen(true);
+}
+
+function incrementYear(y) {
+  const m = y.match(/(\d{4})\/(\d{4})/);
+  if (!m) return y;
+  return (parseInt(m[1])+1) + '/' + (parseInt(m[2])+1);
+}
+
+function welcomeImportClick() {
+  document.getElementById('wlFileInput').click();
+}
+
+function welcomeHandleFile(file) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onerror = () => notify('Błąd odczytu pliku', 'error');
+  r.onload = e => {
+    const res = importJSON(e.target.result);
+    if (res.ok) {
+      hideWelcomeScreen();
+      renderAll();
+      notify(res.msg || 'Zaimportowano ✓', 'success');
+    } else {
+      notify('Błąd importu: ' + (res.error || '?'), 'error');
+    }
+  };
+  r.readAsText(file);
+}
+
+function welcomeDemo() {
+  // Załaduj przykładowe dane demo
+  const demoData = buildDemoData();
+  Object.assign(S, demoData);
+  hideWelcomeScreen();
+  renderAll();
+  if (S.classes.length) setActiveClass(S.classes[0].id);
+  notify('🎬 Tryb demo — dane fikcyjne, niezapisywane', 'info');
+}
+
+function buildDemoData() {
+  const colors = COLORS;
+  const teachers = [
+    {id:'dt1', first:'Anna', last:'Kowalska', name:'Anna Kowalska', short:'AKOW'},
+    {id:'dt2', first:'Jan', last:'Nowak', name:'Jan Nowak', short:'JNOW'},
+    {id:'dt3', first:'Maria', last:'Wiśniewska', name:'Maria Wiśniewska', short:'MWIS'},
+    {id:'dt4', first:'Piotr', last:'Wójcik', name:'Piotr Wójcik', short:'PWOJ'},
+  ];
+  const rooms = [
+    {id:'dr1', name:'101', desc:'Sala ogólna'},
+    {id:'dr2', name:'102', desc:'Sala języków'},
+    {id:'dr3', name:'201', desc:'Sala informatyczna'},
+    {id:'dr4', name:'Gym', desc:'Sala gimnastyczna'},
+  ];
+  const subjects = [
+    {id:'ds1', name:'Matematyka', short:'MAT', color:colors[0]},
+    {id:'ds2', name:'Język Polski', short:'POL', color:colors[1]},
+    {id:'ds3', name:'Angielski', short:'ANG', color:colors[3]},
+    {id:'ds4', name:'Wychowanie Fizyczne', short:'WF', color:colors[2]},
+    {id:'ds5', name:'Historia', short:'HIS', color:colors[4]},
+  ];
+  const classes = [
+    {id:'dc1', name:'1A', short:'1A', color:colors[0]},
+    {id:'dc2', name:'1B', short:'1B', color:colors[1]},
+  ];
+  const schoolGroups = [];
+  const assignments = [
+    {id:'da1', classId:'dc1', teacherId:'dt1', subjectId:'ds1', roomId:'dr1', groupId:null, linkedGroupIds:[], hoursPerWeek:4},
+    {id:'da2', classId:'dc1', teacherId:'dt2', subjectId:'ds2', roomId:'dr1', groupId:null, linkedGroupIds:[], hoursPerWeek:4},
+    {id:'da3', classId:'dc1', teacherId:'dt3', subjectId:'ds3', roomId:'dr2', groupId:null, linkedGroupIds:[], hoursPerWeek:3},
+    {id:'da4', classId:'dc1', teacherId:'dt4', subjectId:'ds4', roomId:'dr4', groupId:null, linkedGroupIds:[], hoursPerWeek:2},
+    {id:'da5', classId:'dc2', teacherId:'dt1', subjectId:'ds1', roomId:'dr1', groupId:null, linkedGroupIds:[], hoursPerWeek:4},
+    {id:'da6', classId:'dc2', teacherId:'dt2', subjectId:'ds5', roomId:'dr1', groupId:null, linkedGroupIds:[], hoursPerWeek:2},
+  ];
+  // Place some lessons
+  const lessons = {
+    'dc1|1|1':{assignmentId:'da1',locked:false},
+    'dc1|1|2':{assignmentId:'da2',locked:false},
+    'dc1|2|1':{assignmentId:'da3',locked:false},
+    'dc1|3|1':{assignmentId:'da4',locked:false},
+    'dc2|1|1':{assignmentId:'da5',locked:false},
+    'dc2|2|2':{assignmentId:'da6',locked:false},
+  };
+  return {
+    meta:{schoolName:'Liceum Demo nr 1', schoolShort:'LD1', year:'2025/2026', modifiedAt:new Date().toISOString()},
+    hours: JSON.parse(JSON.stringify(DEFAULT_HOURS)),
+    classes, teachers, rooms, subjects, schoolGroups, assignments, lessons
+  };
+}
+
+// ── KREATOR ─────────────────────────────────────────────
+function wizUid() { return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+function wizOpen(fromCopy) {
+  if (!fromCopy) {
+    wizData = {
+      schoolName: '', schoolShort: '', year: '2025/2026',
+      classes: [], teachers: [], rooms: [], subjects: [],
+      hours: JSON.parse(JSON.stringify(DEFAULT_HOURS))
+    };
+  }
+  wizCurrentStep = 0;
+  wizRenderStep();
+  document.getElementById('wizardOverlay').classList.add('open');
+  hideWelcomeScreen();
+  // Autosave
+  wizDraftTimer = setInterval(wizSaveDraft, 30000);
+}
+
+function wizardClose() {
+  if (wizCurrentStep > 0 || wizData.classes.length || wizData.teachers.length) {
+    if (!confirm('Zamknąć kreator? Możesz go wznowić później.')) return;
+    wizSaveDraft();
+  }
+  document.getElementById('wizardOverlay').classList.remove('open');
+  clearInterval(wizDraftTimer);
+  showWelcomeScreen();
+}
+
+function wizBackdropClick(e) {
+  if (e.target === document.getElementById('wizardOverlay')) wizardClose();
+}
+
+function wizardBack() {
+  if (wizCurrentStep > 0) { wizCurrentStep--; wizRenderStep(); }
+}
+
+function wizardNext() {
+  if (wizCurrentStep < WIZ_STEPS - 1) {
+    wizCollectStep(wizCurrentStep);
+    wizCurrentStep++;
+    wizRenderStep();
+    wizSaveDraft();
+  } else {
+    wizFinish();
+  }
+}
+
+function wizRenderStep() {
+  // Steps visibility
+  for (let i = 0; i < WIZ_STEPS; i++) {
+    const el = document.getElementById('wStep' + i);
+    if (el) el.classList.toggle('active', i === wizCurrentStep);
+    const ws = document.getElementById('ws' + i);
+    if (ws) {
+      ws.classList.toggle('active', i === wizCurrentStep);
+      ws.classList.toggle('done', i < wizCurrentStep);
+    }
+    const wl = document.getElementById('wl' + i);
+    if (wl) wl.classList.toggle('done', i < wizCurrentStep);
+  }
+  document.getElementById('wizFooterInfo').textContent = 'Krok ' + (wizCurrentStep + 1) + ' z ' + WIZ_STEPS;
+  document.getElementById('wBtnBack').style.display = wizCurrentStep > 0 ? '' : 'none';
+  document.getElementById('wBtnNext').textContent = wizCurrentStep === WIZ_STEPS - 1 ? '✓ Zakończ i uruchom' : 'Dalej →';
+  // Fill fields from wizData
+  if (wizCurrentStep === 0) {
+    document.getElementById('wSchoolName').value = wizData.schoolName;
+    document.getElementById('wSchoolShort').value = wizData.schoolShort;
+    document.getElementById('wYear').value = wizData.year;
+  }
+  if (wizCurrentStep === 1) wizRenderClasses();
+  if (wizCurrentStep === 2) wizRenderTeachers();
+  if (wizCurrentStep === 3) wizRenderRooms();
+  if (wizCurrentStep === 4) wizRenderSubjects();
+  if (wizCurrentStep === 5) { wizRenderHours(); wizRenderSummary(); }
+}
+
+function wizCollectStep(step) {
+  if (step === 0) {
+    wizData.schoolName = document.getElementById('wSchoolName').value.trim();
+    wizData.schoolShort = document.getElementById('wSchoolShort').value.trim();
+    wizData.year = document.getElementById('wYear').value.trim() || '2025/2026';
+  }
+  if (step === 1) wizCollectClasses();
+  if (step === 2) wizCollectTeachers();
+  if (step === 3) wizCollectRooms();
+  if (step === 4) wizCollectSubjects();
+  if (step === 5) wizCollectHours();
+}
+
+// ── KLASY ────────────────────────────────────────────────
+function wizRenderClasses() {
+  const list = document.getElementById('wClassList');
+  list.innerHTML = wizData.classes.map((c,i) => `
+    <div class="wiz-row" style="grid-template-columns:1fr 80px auto">
+      <input value="${escH(c.name)}" placeholder="np. 1A" onchange="wizData.classes[${i}].name=this.value;wizAutoShort(${i})">
+      <input value="${escH(c.short)}" placeholder="Skrót" onchange="wizData.classes[${i}].short=this.value">
+      <button class="wiz-row-del" onclick="wizData.classes.splice(${i},1);wizRenderClasses()">✕</button>
+    </div>`).join('');
+  document.getElementById('wClassCount').textContent = wizData.classes.length + ' klas' + (wizData.classes.length === 1 ? 'a' : wizData.classes.length < 5 ? 'y' : '');
+}
+
+function wizAutoShort(i) {
+  if (!wizData.classes[i].short) wizData.classes[i].short = wizData.classes[i].name;
+  wizRenderClasses();
+}
+
+function wizAddClass() {
+  wizData.classes.push({id: wizUid(), name: '', short: ''});
+  wizRenderClasses();
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('#wClassList .wiz-row input');
+    if (inputs.length) inputs[inputs.length - 2].focus();
+  }, 50);
+}
+
+function wizCollectClasses() {
+  document.querySelectorAll('#wClassList .wiz-row').forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    if (wizData.classes[i]) {
+      wizData.classes[i].name = inputs[0].value.trim();
+      wizData.classes[i].short = inputs[1].value.trim() || inputs[0].value.trim();
+    }
+  });
+  wizData.classes = wizData.classes.filter(c => c.name);
+}
+
+function wizHandleClassDrop(e) {
+  e.preventDefault();
+  document.getElementById('wClassDropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) wizReadClassFile({files:[file]});
+}
+
+function wizReadClassFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onerror = () => notify('Błąd odczytu pliku','error');
+  r.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    wizData.classes = lines.map(l => {
+      const parts = l.split(/[;,]/);
+      return {id: wizUid(), name: parts[0].trim(), short: (parts[1]||parts[0]).trim()};
+    });
+    wizRenderClasses();
+    notify('Wczytano ' + wizData.classes.length + ' klas', 'success');
+  };
+  r.readAsText(file, 'utf-8');
+}
+
+// ── NAUCZYCIELE ──────────────────────────────────────────
+function wizRenderTeachers() {
+  const list = document.getElementById('wTeacherList');
+  list.innerHTML = wizData.teachers.map((t,i) => `
+    <div class="wiz-row" style="grid-template-columns:1fr 1fr 80px auto">
+      <input value="${escH(t.first)}" placeholder="Imię" onchange="wizData.teachers[${i}].first=this.value;wizAutoTeacherShort(${i})">
+      <input value="${escH(t.last)}" placeholder="Nazwisko" onchange="wizData.teachers[${i}].last=this.value;wizAutoTeacherShort(${i})">
+      <input value="${escH(t.short)}" placeholder="Skrót" onchange="wizData.teachers[${i}].short=this.value">
+      <button class="wiz-row-del" onclick="wizData.teachers.splice(${i},1);wizRenderTeachers()">✕</button>
+    </div>`).join('');
+  document.getElementById('wTeacherCount').textContent = wizData.teachers.length + ' nauczyciel' + (wizData.teachers.length === 1 ? '' : wizData.teachers.length < 5 ? 'i' : 'i');
+}
+
+function wizAutoTeacherShort(i) {
+  const t = wizData.teachers[i];
+  if (!t.short && t.first && t.last) {
+    t.short = (t.first[0] + t.last.slice(0,3)).toUpperCase();
+    wizRenderTeachers();
+  }
+}
+
+function wizAddTeacher() {
+  wizData.teachers.push({id: wizUid(), first: '', last: '', short: ''});
+  wizRenderTeachers();
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#wTeacherList .wiz-row');
+    if (rows.length) rows[rows.length-1].querySelector('input').focus();
+  }, 50);
+}
+
+function wizCollectTeachers() {
+  document.querySelectorAll('#wTeacherList .wiz-row').forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    if (wizData.teachers[i]) {
+      wizData.teachers[i].first = inputs[0].value.trim();
+      wizData.teachers[i].last = inputs[1].value.trim();
+      const full = (wizData.teachers[i].first + ' ' + wizData.teachers[i].last).trim();
+      wizData.teachers[i].short = inputs[2].value.trim() || (wizData.teachers[i].first[0]||'') + wizData.teachers[i].last.slice(0,3).toUpperCase();
+      wizData.teachers[i].name = full;
+    }
+  });
+  wizData.teachers = wizData.teachers.filter(t => t.first || t.last);
+}
+
+function wizHandleTeacherDrop(e) {
+  e.preventDefault();
+  document.getElementById('wTeacherDropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) wizReadTeacherFile({files:[file]});
+}
+
+function wizReadTeacherFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onerror = () => notify('Błąd odczytu pliku','error');
+  r.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    wizData.teachers = lines.map(l => {
+      const parts = l.split(' ');
+      const first = parts[0] || '';
+      const last = parts.slice(1).join(' ') || '';
+      const short = (first[0]||'') + last.slice(0,3).toUpperCase();
+      return {id: wizUid(), first, last, name: l, short};
+    });
+    wizRenderTeachers();
+    notify('Wczytano ' + wizData.teachers.length + ' nauczycieli', 'success');
+  };
+  r.readAsText(file, 'utf-8');
+}
+
+// ── SALE ─────────────────────────────────────────────────
+function wizRenderRooms() {
+  const list = document.getElementById('wRoomList');
+  list.innerHTML = wizData.rooms.map((rm,i) => `
+    <div class="wiz-row" style="grid-template-columns:120px 1fr auto">
+      <input value="${escH(rm.name)}" placeholder="np. 101" onchange="wizData.rooms[${i}].name=this.value">
+      <input value="${escH(rm.desc)}" placeholder="Opis (opcjonalnie)" onchange="wizData.rooms[${i}].desc=this.value">
+      <button class="wiz-row-del" onclick="wizData.rooms.splice(${i},1);wizRenderRooms()">✕</button>
+    </div>`).join('');
+  document.getElementById('wRoomCount').textContent = wizData.rooms.length + ' sal' + (wizData.rooms.length === 1 ? 'a' : wizData.rooms.length < 5 ? 'e' : '');
+}
+
+function wizAddRoom() {
+  wizData.rooms.push({id: wizUid(), name: '', desc: ''});
+  wizRenderRooms();
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#wRoomList .wiz-row');
+    if (rows.length) rows[rows.length-1].querySelector('input').focus();
+  }, 50);
+}
+
+function wizCollectRooms() {
+  document.querySelectorAll('#wRoomList .wiz-row').forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    if (wizData.rooms[i]) {
+      wizData.rooms[i].name = inputs[0].value.trim();
+      wizData.rooms[i].desc = inputs[1].value.trim();
+    }
+  });
+  wizData.rooms = wizData.rooms.filter(r => r.name);
+}
+
+function wizHandleRoomDrop(e) {
+  e.preventDefault();
+  document.getElementById('wRoomDropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) wizReadRoomFile({files:[file]});
+}
+
+function wizReadRoomFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onerror = () => notify('Błąd odczytu pliku','error');
+  r.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    wizData.rooms = lines.map(l => {
+      const parts = l.split(/[;,]/);
+      return {id: wizUid(), name: parts[0].trim(), desc: (parts[1]||'').trim()};
+    });
+    wizRenderRooms();
+    notify('Wczytano ' + wizData.rooms.length + ' sal', 'success');
+  };
+  r.readAsText(file, 'utf-8');
+}
+
+// ── PRZEDMIOTY ───────────────────────────────────────────
+function wizRenderSubjects() {
+  const list = document.getElementById('wSubjectList');
+  list.innerHTML = wizData.subjects.map((s,i) => `
+    <div class="wiz-row" style="grid-template-columns:1fr 80px auto">
+      <input value="${escH(s.name)}" placeholder="np. Matematyka" onchange="wizData.subjects[${i}].name=this.value">
+      <input value="${escH(s.short)}" placeholder="Skrót" onchange="wizData.subjects[${i}].short=this.value">
+      <button class="wiz-row-del" onclick="wizData.subjects.splice(${i},1);wizRenderSubjects()">✕</button>
+    </div>`).join('');
+  document.getElementById('wSubjectCount').textContent = wizData.subjects.length + ' przedmiot' + (wizData.subjects.length === 1 ? '' : wizData.subjects.length < 5 ? 'y' : 'ów');
+}
+
+function wizAddSubject() {
+  wizData.subjects.push({id: wizUid(), name: '', short: '', color: COLORS[wizData.subjects.length % COLORS.length]});
+  wizRenderSubjects();
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#wSubjectList .wiz-row');
+    if (rows.length) rows[rows.length-1].querySelector('input').focus();
+  }, 50);
+}
+
+function wizCollectSubjects() {
+  document.querySelectorAll('#wSubjectList .wiz-row').forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    if (wizData.subjects[i]) {
+      wizData.subjects[i].name = inputs[0].value.trim();
+      wizData.subjects[i].short = inputs[1].value.trim();
+    }
+  });
+  wizData.subjects = wizData.subjects.filter(s => s.name);
+}
+
+function wizHandleSubjectDrop(e) {
+  e.preventDefault();
+  document.getElementById('wSubjectDropZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) wizReadSubjectFile({files:[file]});
+}
+
+function wizReadSubjectFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onerror = () => notify('Błąd odczytu pliku','error');
+  r.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    wizData.subjects = lines.map((l, i) => {
+      const parts = l.split(/[;,]/);
+      return {id: wizUid(), name: parts[0].trim(), short: (parts[1]||parts[0].slice(0,3)).trim().toUpperCase(), color: COLORS[i % COLORS.length]};
+    });
+    wizRenderSubjects();
+    notify('Wczytano ' + wizData.subjects.length + ' przedmiotów', 'success');
+  };
+  r.readAsText(file, 'utf-8');
+}
+
+// ── GODZINY ──────────────────────────────────────────────
+function wizRenderHours() {
+  if (!wizData.hours.length) wizData.hours = JSON.parse(JSON.stringify(DEFAULT_HOURS));
+  const list = document.getElementById('wHoursList');
+  list.innerHTML = wizData.hours.map((h, i) => `
+    <div class="wiz-hour-row">
+      <div class="wiz-hour-num">${h.num}</div>
+      <input class="wiz-time-input" type="time" value="${h.start}" onchange="wizData.hours[${i}].start=this.value">
+      <div class="wiz-hour-sep">—</div>
+      <input class="wiz-time-input" type="time" value="${h.end}" onchange="wizData.hours[${i}].end=this.value">
+      <button class="wiz-row-del" onclick="wizData.hours.splice(${i},1);wizRenderHours()">✕</button>
+    </div>`).join('');
+}
+
+function wizAddHour() {
+  const last = wizData.hours[wizData.hours.length - 1];
+  const nextNum = last ? last.num + 1 : 1;
+  wizData.hours.push({num: nextNum, start: '00:00', end: '00:00'});
+  wizRenderHours();
+}
+
+function wizCollectHours() {
+  document.querySelectorAll('#wHoursList .wiz-hour-row').forEach((row, i) => {
+    const inputs = row.querySelectorAll('input');
+    if (wizData.hours[i]) {
+      wizData.hours[i].start = inputs[0].value;
+      wizData.hours[i].end = inputs[1].value;
+    }
+  });
+}
+
+// ── PODSUMOWANIE ─────────────────────────────────────────
+function wizRenderSummary() {
+  const el = document.getElementById('wizSummary');
+  el.innerHTML = `
+    <div class="wiz-summary-row">🏫 <strong>Szkoła:</strong> ${escH(wizData.schoolName || '(nie podano)')} ${wizData.schoolShort ? '(' + escH(wizData.schoolShort) + ')' : ''}</div>
+    <div class="wiz-summary-row">🗓 <strong>Rok szkolny:</strong> ${escH(wizData.year)}</div>
+    <div class="wiz-summary-row">🎓 <strong>Klasy:</strong> ${wizData.classes.length} (${wizData.classes.map(c=>escH(c.name)).join(', ') || '—'})</div>
+    <div class="wiz-summary-row">👨‍🏫 <strong>Nauczyciele:</strong> ${wizData.teachers.length}</div>
+    <div class="wiz-summary-row">🏫 <strong>Sale:</strong> ${wizData.rooms.length}</div>
+    <div class="wiz-summary-row">📚 <strong>Przedmioty:</strong> ${wizData.subjects.length}</div>
+    <div class="wiz-summary-row">⏱ <strong>Godziny lekcyjne:</strong> ${wizData.hours.length} (${wizData.hours.map(h=>h.num).join(', ')})</div>
+  `;
+}
+
+// ── ZAKOŃCZENIE KREATORA ─────────────────────────────────
+function wizFinish() {
+  wizCollectStep(5);
+  // Apply to S
+  S.meta.schoolName = wizData.schoolName;
+  S.meta.schoolShort = wizData.schoolShort;
+  S.meta.year = wizData.year;
+  S.hours = wizData.hours;
+  S.classes = wizData.classes.map(c => ({
+    id: uid(), name: c.name, short: c.short || c.name,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)]
+  }));
+  S.teachers = wizData.teachers.map(t => ({
+    id: uid(), first: t.first, last: t.last,
+    name: (t.first + ' ' + t.last).trim(),
+    short: t.short || (t.first[0]||'') + t.last.slice(0,3).toUpperCase()
+  }));
+  S.rooms = wizData.rooms.map(r => ({id: uid(), name: r.name, desc: r.desc || ''}));
+  S.subjects = wizData.subjects.map((s, i) => ({
+    id: uid(), name: s.name, short: s.short || s.name.slice(0,3).toUpperCase(),
+    color: COLORS[i % COLORS.length]
+  }));
+  S.schoolGroups = [];
+  S.assignments = [];
+  S.lessons = {};
+  saveState();
+  wizClearDraft();
+  clearInterval(wizDraftTimer);
+  document.getElementById('wizardOverlay').classList.remove('open');
+  renderAll();
+  renderHours();
+  if (S.classes.length) setActiveClass(S.classes[0].id);
+  notify('✓ Konfiguracja zapisana — plan gotowy do uzupełnienia', 'success');
+}
+
+// ── DRAFT (AUTOSAVE KREATORA) ────────────────────────────
+function wizSaveDraft() {
+  wizCollectStep(wizCurrentStep);
+  const draft = {...wizData, step: wizCurrentStep, savedAt: new Date().toISOString()};
+  try { localStorage.setItem(WIZ_DRAFT_KEY, JSON.stringify(draft)); } catch(e) {}
+  document.getElementById('wizAutosaveStatus').textContent = '💾 Zapisano ' + new Date().toLocaleTimeString('pl');
+}
+
+function wizLoadDraft() {
+  try {
+    const d = localStorage.getItem(WIZ_DRAFT_KEY);
+    return d ? JSON.parse(d) : null;
+  } catch(e) { return null; }
+}
+
+function wizClearDraft() {
+  try { localStorage.removeItem(WIZ_DRAFT_KEY); } catch(e) {}
+}
+
+function wizDraftResume() {
+  const draft = wizLoadDraft();
+  if (!draft) return;
+  document.getElementById('wizDraftModal').classList.remove('open');
+  wizData = {
+    schoolName: draft.schoolName || '', schoolShort: draft.schoolShort || '',
+    year: draft.year || '2025/2026',
+    classes: draft.classes || [], teachers: draft.teachers || [],
+    rooms: draft.rooms || [], subjects: draft.subjects || [],
+    hours: draft.hours || JSON.parse(JSON.stringify(DEFAULT_HOURS))
+  };
+  wizCurrentStep = draft.step || 0;
+  wizRenderStep();
+  document.getElementById('wizardOverlay').classList.add('open');
+  hideWelcomeScreen();
+  wizDraftTimer = setInterval(wizSaveDraft, 30000);
+}
+
+function wizDraftDiscard() {
+  wizClearDraft();
+  document.getElementById('wizDraftModal').classList.remove('open');
+  wizOpen(false);
+}
+
+// ── HELPER ───────────────────────────────────────────────
+function escH(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── TOPBAR: przycisk "Strona główna" ─────────────────────
+function goHome() {
+  showWelcomeScreen();
+}
+
 // NOTIFICATIONS
 function notify(msg,type='info'){
   const el=document.createElement('div');el.className='notif '+type;el.textContent=msg;
