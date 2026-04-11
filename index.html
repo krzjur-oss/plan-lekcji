@@ -2194,18 +2194,9 @@ function welcomeStartNew() {
 }
 
 function welcomeCopyYear() {
-  // Kopiuj dane ze stanu aplikacji do kreatora i otwórz
-  wizData = {
-    schoolName: S.meta.schoolName || '',
-    schoolShort: S.meta.schoolShort || '',
-    year: incrementYear(S.meta.year || '2025/2026'),
-    classes: S.classes.map(c => ({id: wizUid(), name: c.name, short: c.short || c.name})),
-    teachers: S.teachers.map(t => ({id: wizUid(), first: t.first || '', last: t.last || t.name || '', short: t.short || ''})),
-    rooms: S.rooms.map(r => ({id: wizUid(), name: r.name, desc: r.desc || ''})),
-    subjects: S.subjects.map(s => ({id: wizUid(), name: s.name, short: s.short || '', color: s.color || COLORS[0]})),
-    hours: JSON.parse(JSON.stringify(S.hours))
-  };
-  wizOpen(true);
+  // Ukryj stronę powitalną i otwórz właściwy modal "Kopiuj plan"
+  hideWelcomeScreen();
+  showNewYear();
 }
 
 function incrementYear(y) {
