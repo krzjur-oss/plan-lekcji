@@ -444,10 +444,35 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .print-pick-item:hover{border-color:var(--accent);background:#eff6ff}
 .print-pick-item input{accent-color:var(--accent);width:14px;height:14px;flex-shrink:0}
 @media print{
-  html,body{height:auto!important;overflow:visible!important}
+  html,body{height:auto!important;overflow:visible!important;background:#fff!important}
+
+  /* Ukryj całe chrome aplikacji — zostaje tylko #plachta-print-root */
+  #topbar,#sidebar-left,#sidebar-right,#view-header,.top-actions,
+  .view-controls,.modal-overlay,.notify-container,#sidebar-toggle,
+  .sidebar-overlay{display:none!important}
+
+  /* Główny obszar – rozepnij z grid */
+  #app{display:block!important;height:auto!important;overflow:visible!important}
+  #main{overflow:visible!important;height:auto!important}
+  .page{overflow:visible!important;height:auto!important}
+
+  /* Kontener print-root – widoczny podczas druku */
+  #plachta-print-root{display:block!important;position:static!important;left:auto!important}
+
+  /* Usuń sticky pozycjonowanie – psuje layout druku */
+  .plachta-entity-header{position:static!important}
+  .plachta-tbl thead th{position:static!important}
+  .plachta-tbl .ph-hour-col{position:static!important}
+
+  /* Tabela mieści się w szerokości strony */
+  .plachta-scroll{overflow:visible!important;width:100%!important}
+  .plachta-entity{overflow:visible!important;box-shadow:none!important;break-inside:avoid;page-break-inside:avoid}
+
+  /* Kolory tła i obramowania zachowane */
   .plachta-entity-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ph-card{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ph-g{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ph-cell.ph-empty{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 /* About modal */
 .about-version-table{width:100%;border-collapse:collapse;font-size:12px;}

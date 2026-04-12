@@ -2103,52 +2103,18 @@ function plachtaDoPrint(selectedIds, layout, orient) {
 
   if (!selectedBlocks.length) return;
 
-  // Wymiary strony w px przy 96dpi (A4)
+  // A4 w mm → px przy 96dpi (1mm = 3.7795px)
   const isLandscape = orient === 'landscape';
-  const pageW = isLandscape ? 1122 : 793;  // px ~ A4
-  const pageH = isLandscape ? 793 : 1122;
-  const margin = 32; // px margines
-  const usableW = pageW - margin * 2;
-  const usableH = pageH - margin * 2;
+  // Margines @page: 8mm każdy bok
+  const marginMM = 8;
+  const mmToPx = 3.7795;
+  const pageW = Math.round((isLandscape ? 297 : 210) * mmToPx);
+  const pageH = Math.round((isLandscape ? 210 : 297) * mmToPx);
+  const marginPx = Math.round(marginMM * mmToPx);
+  const usableW = pageW - marginPx * 2;
+  const usableH = pageH - marginPx * 2;
 
-  // Zmierz wysokość każdego bloku (tymczasowo pokaż)
-  allBlocks.forEach(el => { el.style.visibility = 'hidden'; el.style.display = ''; });
-  const heights = selectedBlocks.map(el => el.getBoundingClientRect().height);
-  const widths  = selectedBlocks.map(el => el.getBoundingClientRect().width);
-  allBlocks.forEach(el => { el.style.visibility = ''; el.style.display = 'none'; });
-
-  // Buduj strony: pakuj po 2 jeśli pasują
-  const pages = [];
-  let i = 0;
-  while (i < selectedBlocks.length) {
-    if (layout === 'one') {
-      pages.push([i]);
-      i++;
-      continue;
-    }
-    // Sprawdź czy dwie encje zmieszczą się razem
-    const h1 = heights[i];
-    const h2 = i + 1 < heights.length ? heights[i + 1] : null;
-    const w1 = widths[i];
-    const w2 = i + 1 < widths.length ? widths[i + 1] : null;
-
-    let paired = false;
-    if (h2 !== null) {
-      const fitsVertical   = (h1 + h2 + 20) <= usableH && Math.max(w1, w2) <= usableW;
-      const fitsHorizontal = (w1 + w2 + 20) <= usableW && Math.max(h1, h2) <= usableH;
-      if (fitsVertical || fitsHorizontal) {
-        pages.push([i, i + 1, fitsVertical ? 'vertical' : 'horizontal']);
-        i += 2;
-        paired = true;
-      }
-    }
-    if (!paired) {
-      pages.push([i]);
-      i++;
-    }
-  }
-
-  // Zbuduj tymczasowy kontener do druku
+  // Zbuduj tymczasowy kontener – musi być w DOM, żeby getBoundingClientRect działał
   const printStyle = document.createElement('style');
   printStyle.id = 'plachta-print-style';
   printStyle.textContent = `
@@ -2156,65 +2122,148 @@ function plachtaDoPrint(selectedIds, layout, orient) {
       body > *:not(#plachta-print-root) { display: none !important; }
       #plachta-print-root { display: block !important; }
     }
-    @page { size: A4 ${orient}; margin: 10mm; }
-    #plachta-print-root { display: none; font-family: sans-serif; }
-    .ppr-page { page-break-after: always; break-after: page; display: flex; gap: 12px; align-items: flex-start; }
+    @page { size: A4 ${orient}; margin: ${marginMM}mm; }
+    #plachta-print-root {
+      display: block;
+      position: fixed; left: -99999px; top: 0;
+      width: ${usableW}px;
+      font-family: 'Inter', sans-serif;
+      background: #fff;
+    }
+    /* Reset sticky pozycjonowania – przy druku i pomiarach psuje layout */
+    #plachta-print-root .plachta-entity-header { position: static !important; }
+    #plachta-print-root .plachta-tbl thead th   { position: static !important; }
+    #plachta-print-root .plachta-tbl .ph-hour-col{ position: static !important; }
+
+    /* Strony */
+    .ppr-page { page-break-after: always; break-after: page; display: flex; gap: 10px; align-items: flex-start; width: 100%; }
     .ppr-page:last-child { page-break-after: avoid; break-after: avoid; }
-    .ppr-page.ppr-vertical { flex-direction: column; }
+    .ppr-page.ppr-vertical   { flex-direction: column; }
     .ppr-page.ppr-horizontal { flex-direction: row; }
-    .ppr-page .plachta-entity { flex: 1 1 auto; min-width: 0; overflow: visible !important; border: 1px solid #ddd; border-radius: 6px; box-shadow: none; }
-    .ppr-page.ppr-vertical .plachta-entity { width: 100%; }
-    .ppr-page.ppr-horizontal .plachta-entity { width: 50%; flex: 1 1 50%; }
-    .plachta-scroll { overflow: visible !important; }
-    .plachta-tbl { width: 100%; border-collapse: collapse; font-size: 9px; }
-    .plachta-tbl th, .plachta-tbl td { border: 1px solid #e2e8f0; padding: 2px 3px; }
+
+    /* Encja */
+    .ppr-page .plachta-entity {
+      overflow: visible !important;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: none;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .ppr-page.ppr-vertical   .plachta-entity { width: 100%; }
+    .ppr-page.ppr-horizontal .plachta-entity { flex: 1 1 0; min-width: 0; }
+
+    /* Tabela: nie obcinaj, skaluj czcionkę */
+    .plachta-scroll { overflow: visible !important; width: 100% !important; }
+    .plachta-tbl {
+      width: 100% !important;
+      table-layout: fixed;
+      border-collapse: collapse;
+      font-size: 8.5px;
+      word-break: break-word;
+    }
+    .plachta-tbl thead th { font-size: 8px; padding: 2px 3px; white-space: nowrap; overflow: hidden; }
+    .plachta-tbl .ph-hour-col { min-width: 50px; white-space: nowrap; font-size: 8px; padding: 2px 3px; }
+    .plachta-tbl td { border: 1px solid #e2e8f0; padding: 1px; vertical-align: top; }
+    .plachta-tbl th { border: 1px solid #e2e8f0; }
+    .ph-cell { width: auto !important; min-width: 0 !important; height: 44px; }
+    .ph-card { font-size: 8px; padding: 2px 3px; }
+    .ph-card .ph-s { font-size: 8px; }
+    .ph-card .ph-t { font-size: 7px; }
+    .ph-card .ph-r { font-size: 7px; }
+
+    /* Kolory */
     .plachta-entity-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .ph-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .ph-g { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ph-card  { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ph-g     { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ph-cell.ph-empty { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   `;
   document.head.appendChild(printStyle);
 
   const root = document.createElement('div');
   root.id = 'plachta-print-root';
+  document.body.appendChild(root);
 
-  pages.forEach(page => {
-    const [idx1, idx2OrDir, dir] = page;
-    const direction = typeof idx2OrDir === 'string' ? idx2OrDir : (typeof dir === 'string' ? dir : 'vertical');
-    const hasTwo = typeof idx2OrDir === 'number';
+  // Wstępnie sklonuj wszystkie wybrane bloki do roota żeby je zmierzyć
+  const clones = selectedBlocks.map(el => {
+    const cl = el.cloneNode(true);
+    cl.style.display = '';
+    cl.style.visibility = '';
+    root.appendChild(cl);
+    return cl;
+  });
 
-    const pageDiv = document.createElement('div');
-    pageDiv.className = `ppr-page ppr-${direction}`;
+  // Pozwól przeglądarce policzyć layout (synchronicznie przez force-reflow)
+  void root.offsetHeight;
+  const heights = clones.map(cl => cl.getBoundingClientRect().height);
+  const widths  = clones.map(cl => cl.getBoundingClientRect().width);
 
-    // Klonuj bloki (żeby nie ruszyć oryginału)
-    const clone1 = selectedBlocks[idx1].cloneNode(true);
-    clone1.style.display = '';
-    clone1.style.visibility = '';
-    pageDiv.appendChild(clone1);
+  // Usuń tymczasowe klony – będziemy dodawać je do stron
+  clones.forEach(cl => cl.remove());
 
-    if (hasTwo) {
-      const clone2 = selectedBlocks[idx2OrDir].cloneNode(true);
-      clone2.style.display = '';
-      clone2.style.visibility = '';
-      pageDiv.appendChild(clone2);
+  // Buduj strony
+  const pages = [];
+  let i = 0;
+  while (i < clones.length) {
+    if (layout === 'one') {
+      pages.push({ indices: [i], dir: 'vertical' });
+      i++;
+      continue;
     }
+    const h1 = heights[i];
+    const h2 = i + 1 < heights.length ? heights[i + 1] : null;
+    const w1 = widths[i];
+    const w2 = i + 1 < widths.length ? widths[i + 1] : null;
 
+    let paired = false;
+    if (h2 !== null) {
+      const fitsVertical   = (h1 + h2 + 10) <= usableH && Math.max(w1, w2) <= usableW;
+      const fitsHorizontal = (w1 + w2 + 10) <= usableW && Math.max(h1, h2) <= usableH;
+      if (fitsVertical || fitsHorizontal) {
+        pages.push({ indices: [i, i + 1], dir: fitsVertical ? 'vertical' : 'horizontal' });
+        i += 2;
+        paired = true;
+      }
+    }
+    if (!paired) {
+      pages.push({ indices: [i], dir: 'vertical' });
+      i++;
+    }
+  }
+
+  // Wyczyść root i zbuduj strony z klonami
+  root.innerHTML = '';
+  pages.forEach(({ indices, dir }) => {
+    const pageDiv = document.createElement('div');
+    pageDiv.className = `ppr-page ppr-${dir}`;
+    indices.forEach(idx => {
+      const cl = clones[idx];
+      // Odbuduj klon od nowa (poprzedni był usunięty z DOM)
+      const fresh = selectedBlocks[idx].cloneNode(true);
+      fresh.style.display = '';
+      fresh.style.visibility = '';
+      pageDiv.appendChild(fresh);
+    });
     root.appendChild(pageDiv);
   });
 
-  document.body.appendChild(root);
+  // Teraz przełącz root na display:none – przy druku @media print go pokaże
+  root.style.position = '';
+  root.style.left = '';
+  root.style.display = 'none';
 
   const cleanup = () => {
     root.remove();
     printStyle.remove();
-    allBlocks.forEach(el => { el.style.display = ''; el.style.visibility = ''; });
     window.removeEventListener('afterprint', cleanup);
   };
   window.addEventListener('afterprint', cleanup);
 
   setTimeout(() => {
     window.print();
-    setTimeout(cleanup, 1200);
-  }, 350);
+    // Fallback cleanup jeśli afterprint nie odpali (Safari)
+    setTimeout(cleanup, 2000);
+  }, 400);
 }
 
 // ── TOPBAR: przycisk "Strona główna" ─────────────────────
