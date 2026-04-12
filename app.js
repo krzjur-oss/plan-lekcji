@@ -2003,7 +2003,7 @@ function buildPlachtaBlock(entity, days, conf) {
   }).join('');
 
   return `
-  <div class="plachta-entity">
+  <div class="plachta-entity" data-entity-id="${entity.id}">
     <div class="plachta-entity-header" style="background:${headerColor}">
       <div class="ph-dot"></div>
       <div class="ph-name">${esc(headerName)}</div>
@@ -2039,7 +2039,50 @@ function buildPhCard(assign, lesson, isConf, extraLabel) {
 }
 
 function plachtaPrint() {
-  window.print();
+  // Zbierz encje aktualnie widoczne (zgodnie z trybem)
+  let entities = [];
+  if (plachtaMode === 'class') {
+    entities = alphaSort(S.classes, 'name').map(e => ({id: e.id, label: e.name, color: e.color||'#2563eb'}));
+  } else if (plachtaMode === 'teacher') {
+    entities = alphaSort(S.teachers, 'name').map(e => ({id: e.id, label: e.name, color: '#7c3aed'}));
+  } else {
+    entities = alphaSort(S.rooms, 'name').map(e => ({id: e.id, label: e.name, color: '#0891b2'}));
+  }
+  if (!entities.length) { notify('Brak danych do wydruku', 'info'); return; }
+
+  const modeLabel = plachtaMode === 'class' ? 'Klasy' : plachtaMode === 'teacher' ? 'Nauczyciele' : 'Sale';
+  const checkboxes = entities.map(e =>
+    `<label class="print-pick-item">
+      <input type="checkbox" class="print-pick-cb" value="${e.id}" checked>
+      <span class="color-dot" style="background:${e.color}"></span>
+      <span>${esc(e.label)}</span>
+    </label>`
+  ).join('');
+
+  openModal('\uD83D\uDDA8 Wybierz do wydruku',
+    `<div style="font-size:12px;color:var(--text2);margin-bottom:10px">
+      Tryb: <strong>${modeLabel}</strong> &nbsp;\u00b7&nbsp;
+      <a href="#" style="color:var(--accent)" onclick="document.querySelectorAll('.print-pick-cb').forEach(c=>c.checked=true);return false">Zaznacz wszystkie</a>
+      &nbsp;/&nbsp;
+      <a href="#" style="color:var(--accent)" onclick="document.querySelectorAll('.print-pick-cb').forEach(c=>c.checked=false);return false">Odznacz wszystkie</a>
+    </div>
+    <div class="print-pick-grid">${checkboxes}</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:12px">Ka\u017cda pozycja drukuje si\u0119 na osobnej stronie (je\u015bli si\u0119 nie mie\u015bci).</div>`,
+    () => {
+      const selected = new Set([...document.querySelectorAll('.print-pick-cb:checked')].map(c => c.value));
+      if (!selected.size) { notify('Nic nie zaznaczono', 'info'); return; }
+      closeModal();
+      const allBlocks = document.querySelectorAll('#plachta-wrapper .plachta-entity');
+      allBlocks.forEach(el => {
+        const eid = el.dataset.entityId;
+        if (!eid || !selected.has(eid)) el.style.display = 'none';
+      });
+      setTimeout(() => {
+        window.print();
+        allBlocks.forEach(el => { el.style.display = ''; });
+      }, 100);
+    }
+  );
 }
 
 // ── TOPBAR: przycisk "Strona główna" ─────────────────────
