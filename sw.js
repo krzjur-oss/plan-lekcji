@@ -1,10 +1,12 @@
-const CACHE = 'planlekcji-v7';
+const CACHE = 'planlekcji-v8';
 
 // Absolutne URL-e — kluczowe dla poprawnego działania na GH Pages
 // i przy uruchamianiu zainstalowanej PWA z ikony na Android
 const ASSETS = [
   self.registration.scope,
   self.registration.scope + 'index.html',
+  self.registration.scope + 'app.js',
+  self.registration.scope + 'styles.css',
   self.registration.scope + 'manifest.json',
   self.registration.scope + 'icon-192.png',
   self.registration.scope + 'icon-512.png',
