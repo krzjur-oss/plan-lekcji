@@ -2195,16 +2195,31 @@ function plachtaDoPrint(selectedIds, layout, orient) {
   </style>
   </head><body>${pagesHtml}</body></html>`;
 
-  // ── Krok 4: otwórz nowe okno, wstaw HTML, wydrukuj ──
-  const win = window.open('', '_blank', 'width=900,height=700');
-  if (!win) { notify('Zablokowano okno popup – zezwól na popupy dla tej strony', 'error'); return; }
-  win.document.write(printHtml);
-  win.document.close();
-  win.focus();
-  // Poczekaj na załadowanie zasobów (fonty itp.)
-  win.onload = () => { win.print(); win.onafterprint = () => win.close(); };
-  // Fallback jeśli onload już odpaliło
-  setTimeout(() => { try { win.print(); } catch(e){} }, 800);
+  // ── Krok 4: drukuj przez ukryty iframe (działa w PWA, nie wymaga popupów) ──
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden';
+  document.body.appendChild(iframe);
+
+  const idoc = iframe.contentDocument || iframe.contentWindow.document;
+  idoc.open();
+  idoc.write(printHtml);
+  idoc.close();
+
+  let printed = false;
+  const doPrint = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch(e) {
+      console.error('Print error:', e);
+    }
+    setTimeout(() => iframe.remove(), 3000);
+  };
+
+  iframe.onload = doPrint;
+  setTimeout(doPrint, 800); // fallback jeśli onload nie odpali
 }
 
 // ── TOPBAR: przycisk "Strona główna" ─────────────────────
