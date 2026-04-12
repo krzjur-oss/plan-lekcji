@@ -412,9 +412,9 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .wiz-draft-btns{display:flex;flex-direction:column;gap:8px;}
 
 /* ── PŁACHTA ── */
-.plachta-container{display:flex;flex-direction:column;gap:20px;min-width:max-content}
+.plachta-container{display:flex;flex-direction:column;gap:20px}
 .plachta-entity{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow);overflow:hidden}
-.plachta-entity-header{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;font-weight:700;color:#fff;border-bottom:1px solid rgba(0,0,0,.1);position:sticky;left:0;z-index:6}
+.plachta-entity-header{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;font-weight:700;color:#fff;border-bottom:1px solid rgba(0,0,0,.1)}
 .plachta-entity-header .ph-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.5);flex-shrink:0}
 .plachta-entity-header .ph-name{flex:1}
 .plachta-entity-header .ph-badge{font-size:10px;font-weight:500;background:rgba(0,0,0,.15);border-radius:3px;padding:1px 6px;font-family:var(--mono)}

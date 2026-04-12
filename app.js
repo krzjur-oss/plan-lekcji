@@ -2097,186 +2097,114 @@ function plachtaPrint() {
 }
 
 function plachtaDoPrint(selectedIds, layout, orient) {
-  // Pobierz oryginalne bloki DOM
   const allBlocks = [...document.querySelectorAll('#plachta-wrapper .plachta-entity')];
   const selectedBlocks = allBlocks.filter(el => selectedIds.includes(el.dataset.entityId));
-
   if (!selectedBlocks.length) return;
 
-  // A4 w mm → px przy 96dpi (1mm = 3.7795px)
   const isLandscape = orient === 'landscape';
-  // Margines @page: 8mm każdy bok
-  const marginMM = 8;
-  const mmToPx = 3.7795;
-  const pageW = Math.round((isLandscape ? 297 : 210) * mmToPx);
-  const pageH = Math.round((isLandscape ? 210 : 297) * mmToPx);
-  const marginPx = Math.round(marginMM * mmToPx);
-  const usableW = pageW - marginPx * 2;
-  const usableH = pageH - marginPx * 2;
+  const marginMM = 10;
+  // A4 użyteczna szerokość przy 96dpi: (210mm - 2*10mm) * 3.7795px/mm
+  const usableW = Math.round((isLandscape ? 277 : 190) * 3.7795);
+  const usableH = Math.round((isLandscape ? 190 : 277) * 3.7795);
 
-  // Zbuduj tymczasowy kontener – musi być w DOM, żeby getBoundingClientRect działał
-  const printStyle = document.createElement('style');
-  printStyle.id = 'plachta-print-style';
-  printStyle.textContent = `
-    @page { size: A4 ${orient}; margin: ${marginMM}mm; }
+  // ── Krok 1: tymczasowy niewidoczny kontener do pomiaru wymiarów ──
+  const probe = document.createElement('div');
+  probe.style.cssText = `position:absolute;top:0;left:-9999px;width:${usableW}px;visibility:hidden;pointer-events:none`;
+  document.body.appendChild(probe);
 
-    /* Root kontenera druku */
-    #plachta-print-root {
-      display: block;
-      position: fixed; left: -99999px; top: 0;
-      width: ${usableW}px;
-      font-family: 'Inter', sans-serif;
-      background: #fff;
-    }
-    /* Reset sticky pozycjonowania – psuje layout przy pomiarach i druku */
-    #plachta-print-root .plachta-entity-header { position: static !important; }
-    #plachta-print-root .plachta-tbl thead th   { position: static !important; }
-    #plachta-print-root .plachta-tbl .ph-hour-col{ position: static !important; }
-
-    /* Strony */
-    .ppr-page { page-break-after: always; break-after: page; display: flex; gap: 10px; align-items: flex-start; width: 100%; }
-    .ppr-page:last-child { page-break-after: avoid; break-after: avoid; }
-    .ppr-page.ppr-vertical   { flex-direction: column; }
-    .ppr-page.ppr-horizontal { flex-direction: row; }
-
-    /* Encja */
-    .ppr-page .plachta-entity {
-      overflow: visible !important;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      box-shadow: none;
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-    .ppr-page.ppr-vertical   .plachta-entity { width: 100%; }
-    .ppr-page.ppr-horizontal .plachta-entity { flex: 1 1 0; min-width: 0; }
-
-    /* Tabela: nie obcinaj, skaluj czcionkę */
-    .plachta-scroll { overflow: visible !important; width: 100% !important; }
-    .plachta-tbl {
-      width: 100% !important;
-      table-layout: fixed;
-      border-collapse: collapse;
-      font-size: 8.5px;
-      word-break: break-word;
-    }
-    .plachta-tbl thead th { font-size: 8px; padding: 2px 3px; white-space: nowrap; overflow: hidden; }
-    .plachta-tbl .ph-hour-col { min-width: 50px; white-space: nowrap; font-size: 8px; padding: 2px 3px; }
-    .plachta-tbl td { border: 1px solid #e2e8f0; padding: 1px; vertical-align: top; }
-    .plachta-tbl th { border: 1px solid #e2e8f0; }
-    .ph-cell { width: auto !important; min-width: 0 !important; height: 44px; }
-    .ph-card { font-size: 8px; padding: 2px 3px; }
-    .ph-card .ph-s { font-size: 8px; }
-    .ph-card .ph-t { font-size: 7px; }
-    .ph-card .ph-r { font-size: 7px; }
-
-    /* Kolory */
-    .plachta-entity-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .ph-card  { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .ph-g     { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .ph-cell.ph-empty { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  `;
-  document.head.appendChild(printStyle);
-
-  const root = document.createElement('div');
-  root.id = 'plachta-print-root';
-  document.body.appendChild(root);
-
-  // Wstępnie sklonuj wszystkie wybrane bloki do roota żeby je zmierzyć
-  const clones = selectedBlocks.map(el => {
+  const heights = selectedBlocks.map(el => {
     const cl = el.cloneNode(true);
-    cl.style.display = '';
-    cl.style.visibility = '';
-    root.appendChild(cl);
-    return cl;
+    probe.appendChild(cl);
+    const h = cl.getBoundingClientRect().height;
+    probe.removeChild(cl);
+    return h;
   });
+  probe.remove();
 
-  // Pozwól przeglądarce policzyć layout (synchronicznie przez force-reflow)
-  void root.offsetHeight;
-  const heights = clones.map(cl => cl.getBoundingClientRect().height);
-  const widths  = clones.map(cl => cl.getBoundingClientRect().width);
-
-  // Usuń tymczasowe klony – będziemy dodawać je do stron
-  clones.forEach(cl => cl.remove());
-
-  // Buduj strony
+  // ── Krok 2: algorytm pakowania na strony ──
   const pages = [];
   let i = 0;
-  while (i < clones.length) {
-    if (layout === 'one') {
-      pages.push({ indices: [i], dir: 'vertical' });
-      i++;
-      continue;
-    }
-    const h1 = heights[i];
-    const h2 = i + 1 < heights.length ? heights[i + 1] : null;
-    const w1 = widths[i];
-    const w2 = i + 1 < widths.length ? widths[i + 1] : null;
-
-    let paired = false;
-    if (h2 !== null) {
-      const fitsVertical   = (h1 + h2 + 10) <= usableH && Math.max(w1, w2) <= usableW;
-      const fitsHorizontal = (w1 + w2 + 10) <= usableW && Math.max(h1, h2) <= usableH;
-      if (fitsVertical || fitsHorizontal) {
-        pages.push({ indices: [i, i + 1], dir: fitsVertical ? 'vertical' : 'horizontal' });
-        i += 2;
-        paired = true;
-      }
-    }
-    if (!paired) {
-      pages.push({ indices: [i], dir: 'vertical' });
-      i++;
+  while (i < selectedBlocks.length) {
+    if (layout === 'one') { pages.push([i]); i++; continue; }
+    const h1 = heights[i], h2 = heights[i + 1];
+    if (h2 !== undefined && h1 + h2 + 16 <= usableH) {
+      pages.push([i, i + 1]); i += 2;
+    } else {
+      pages.push([i]); i++;
     }
   }
 
-  // Wyczyść root i zbuduj strony z klonami
-  root.innerHTML = '';
-  pages.forEach(({ indices, dir }) => {
-    const pageDiv = document.createElement('div');
-    pageDiv.className = `ppr-page ppr-${dir}`;
-    indices.forEach(idx => {
-      const cl = clones[idx];
-      // Odbuduj klon od nowa (poprzedni był usunięty z DOM)
-      const fresh = selectedBlocks[idx].cloneNode(true);
-      fresh.style.display = '';
-      fresh.style.visibility = '';
-      pageDiv.appendChild(fresh);
-    });
-    root.appendChild(pageDiv);
-  });
+  // ── Krok 3: buduj HTML wydruku jako string, wstaw do nowego okna ──
+  // Pobierz aktualne style z dokumentu (styles.css inline)
+  const styleSheets = [...document.styleSheets].map(ss => {
+    try { return [...ss.cssRules].map(r => r.cssText).join('\n'); }
+    catch(e) { return ''; }
+  }).join('\n');
 
-  // Przenieś root z trybu pomiarowego (fixed off-screen) na normalny
-  root.style.position = '';
-  root.style.left = '';
-  root.style.top = '';
-  root.style.width = '';
+  const pagesHtml = pages.map(idxArr => {
+    const dir = idxArr.length === 2 ? 'vertical' : 'vertical';
+    const blocks = idxArr.map(idx => selectedBlocks[idx].outerHTML).join('');
+    return `<div class="ppr-page ppr-${dir}">${blocks}</div>`;
+  }).join('');
 
-  // Ukryj UI aplikacji SYNCHRONICZNIE przed jakimkolwiek setTimeout/rAF
-  // – na mobile Chrome window.print() może pokazać dialog zanim setTimeout odpali
-  const appEl = document.getElementById('app');
-  const prevAppDisplay = appEl ? appEl.style.display : null;
-  if (appEl) appEl.style.setProperty('display', 'none', 'important');
-
-  const cleanup = () => {
-    root.remove();
-    printStyle.remove();
-    if (appEl) {
-      if (prevAppDisplay !== null && prevAppDisplay !== '') appEl.style.display = prevAppDisplay;
-      else appEl.style.removeProperty('display');
+  const printHtml = `<!DOCTYPE html><html><head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: A4 ${orient}; margin: ${marginMM}mm; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#f1f5f9;--bg2:#fff;--bg3:#f8fafc;--bg4:#f1f5f9;
+      --border:#e2e8f0;--border2:#cbd5e1;
+      --accent:#2563eb;--accent-dim:#eff6ff;--accent-mid:#bfdbfe;
+      --red-dim:#fee2e2;
+      --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+      --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+      --r:6px;--r-md:8px;
     }
-    window.removeEventListener('afterprint', cleanup);
-  };
-  window.addEventListener('afterprint', cleanup);
+    body { font-family: var(--sans); font-size: 13px; background: #fff; }
 
-  // Dwa rAF: pierwszy czeka na koniec bieżącego frame (ukrycie #app),
-  // drugi czeka na następny paint – dopiero wtedy przeglądarka widzi zmiany DOM
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      window.print();
-      // Fallback cleanup jeśli afterprint nie odpali (Safari/mobile WebView)
-      setTimeout(cleanup, 3000);
-    });
-  });
+    /* Strony */
+    .ppr-page { display: flex; flex-direction: column; gap: 12px; page-break-after: always; break-after: page; }
+    .ppr-page:last-child { page-break-after: avoid; break-after: avoid; }
+
+    /* Encja płachty */
+    .plachta-entity { background:#fff; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden; break-inside:avoid; page-break-inside:avoid; }
+    .plachta-entity-header { display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:11px; font-weight:700; color:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .plachta-entity-header .ph-dot { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.5); flex-shrink:0; }
+    .plachta-entity-header .ph-name { flex:1; }
+    .plachta-entity-header .ph-badge { font-size:9px; font-weight:500; background:rgba(0,0,0,.15); border-radius:3px; padding:1px 5px; }
+
+    /* Tabela */
+    .plachta-scroll { overflow:visible; width:100%; }
+    .plachta-tbl { width:100%; table-layout:fixed; border-collapse:collapse; font-size:8px; }
+    .plachta-tbl th, .plachta-tbl td { border:1px solid #e2e8f0; padding:2px 3px; }
+    .plachta-tbl thead th { background:#f8fafc; font-size:8px; font-weight:600; color:#475569; text-align:center; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .plachta-tbl .ph-hour-col { background:#f8fafc; text-align:center; min-width:52px; vertical-align:middle; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .ph-hour-num { font-weight:700; font-size:9px; display:block; }
+    .ph-hour-time { font-size:7.5px; color:#94a3b8; display:block; }
+    .ph-cell { height:42px; vertical-align:top; padding:1px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .ph-cell.ph-empty { background:#f8fafc; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .ph-cell.ph-conflict { background:#fee2e2 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .ph-card { border-radius:2px; padding:2px 3px; height:40px; border-left:3px solid; overflow:hidden; position:relative; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .ph-card .ph-s { font-weight:700; font-size:8px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ph-card .ph-t { font-size:7px; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ph-card .ph-r { font-size:7px; color:#94a3b8; position:absolute; right:2px; bottom:1px; }
+    .ph-card .ph-g { font-size:7.5px; font-weight:700; padding:0 2px; border-radius:2px; display:inline-block; margin-bottom:1px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .ph-multi { display:flex; gap:1px; height:100%; }
+    .ph-multi .ph-card { flex:1; min-width:0; }
+  </style>
+  </head><body>${pagesHtml}</body></html>`;
+
+  // ── Krok 4: otwórz nowe okno, wstaw HTML, wydrukuj ──
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) { notify('Zablokowano okno popup – zezwól na popupy dla tej strony', 'error'); return; }
+  win.document.write(printHtml);
+  win.document.close();
+  win.focus();
+  // Poczekaj na załadowanie zasobów (fonty itp.)
+  win.onload = () => { win.print(); win.onafterprint = () => win.close(); };
+  // Fallback jeśli onload już odpaliło
+  setTimeout(() => { try { win.print(); } catch(e){} }, 800);
 }
 
 // ── TOPBAR: przycisk "Strona główna" ─────────────────────
