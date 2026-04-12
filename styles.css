@@ -453,9 +453,10 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
   .page{display:none!important;height:auto!important;overflow:visible!important}
   #page-plachta{display:block!important;height:auto!important;overflow:visible!important}
   #plachta-wrapper{overflow:visible!important;padding:0!important;height:auto!important}
-  .plachta-container{display:block!important}
-  .plachta-scroll{overflow:visible!important}
-  .plachta-entity{break-before:auto;break-inside:avoid;margin-bottom:16pt;page-break-inside:avoid}
+  .plachta-container{display:block!important;width:100%!important;min-width:0!important}
+  .plachta-scroll{overflow:visible!important;width:100%!important}
+  .plachta-entity{break-before:page;page-break-before:always;break-inside:avoid;page-break-inside:avoid;margin-bottom:0;overflow:visible!important;width:100%!important}
+  .plachta-entity:first-child{break-before:auto;page-break-before:auto}
   .plachta-entity-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ph-card{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ph-g{-webkit-print-color-adjust:exact;print-color-adjust:exact}

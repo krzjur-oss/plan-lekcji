@@ -2075,12 +2075,22 @@ function plachtaPrint() {
       const allBlocks = document.querySelectorAll('#plachta-wrapper .plachta-entity');
       allBlocks.forEach(el => {
         const eid = el.dataset.entityId;
-        if (!eid || !selected.has(eid)) el.style.display = 'none';
+        el.style.display = (!eid || !selected.has(eid)) ? 'none' : '';
       });
+
+      // Przywróć widoczność po zakończeniu druku (afterprint lub fallback)
+      const restore = () => {
+        allBlocks.forEach(el => { el.style.display = ''; });
+        window.removeEventListener('afterprint', restore);
+      };
+      window.addEventListener('afterprint', restore);
+
+      // Daj przeglądarce czas na przeliczenie layoutu przed wydrukiem
       setTimeout(() => {
         window.print();
-        allBlocks.forEach(el => { el.style.display = ''; });
-      }, 100);
+        // Fallback dla przeglądarek bez afterprint
+        setTimeout(restore, 1000);
+      }, 300);
     }
   );
 }
