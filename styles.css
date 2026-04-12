@@ -425,10 +425,10 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .plachta-tbl .ph-hour-col{background:var(--bg3);padding:4px 7px;text-align:center;white-space:nowrap;min-width:64px;vertical-align:middle;position:sticky;left:0;z-index:3;border-right:2px solid var(--border2)}
 .plachta-tbl .ph-hour-num{font-weight:700;color:var(--text);font-size:12px}
 .plachta-tbl .ph-hour-time{font-size:9.5px;color:var(--text3);font-family:var(--mono)}
-.ph-cell{width:120px;min-width:100px;height:48px;vertical-align:top;padding:2px;background:#fff}
+.ph-cell{width:120px;min-width:100px;height:48px;max-height:48px;vertical-align:top;padding:2px;background:#fff;overflow:hidden}
 .ph-cell.ph-empty{background:var(--bg3)}
 .ph-cell.ph-conflict{background:var(--red-dim)!important}
-.ph-card{border-radius:3px;padding:3px 5px;height:100%;border-left:3px solid;overflow:hidden;position:relative}
+.ph-card{border-radius:3px;padding:3px 5px;height:48px;max-height:48px;border-left:3px solid;overflow:hidden;position:relative}
 .ph-card .ph-s{font-weight:700;font-size:10.5px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ph-card .ph-t{font-size:9.5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .ph-card .ph-r{font-size:9px;font-family:var(--mono);color:var(--text3);position:absolute;right:3px;bottom:2px}
@@ -444,13 +444,22 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .print-pick-item:hover{border-color:var(--accent);background:#eff6ff}
 .print-pick-item input{accent-color:var(--accent);width:14px;height:14px;flex-shrink:0}
 @media print{
-  /* Root druku – widoczny (JS ukrywa #app przed window.print()) */
-  #plachta-print-root { display: block !important; position: static !important; }
+  /* Ukryj całą aplikację – JS też to robi, ale CSS @media print jest pewniejszy na mobile */
+  #app { display: none !important; }
+
+  /* Root druku – zawsze widoczny podczas druku */
+  #plachta-print-root { display: block !important; position: static !important; left: auto !important; width: auto !important; }
 
   /* Resetuj sticky – psuje układ przy druku */
   .plachta-entity-header { position: static !important; }
   .plachta-tbl thead th  { position: static !important; }
   .plachta-tbl .ph-hour-col { position: static !important; }
+
+  /* Komórki bez stałej wysokości przy druku – niech się dopasują */
+  .ph-cell { height: auto !important; max-height: none !important; overflow: visible !important; }
+  .ph-card  { height: auto !important; max-height: none !important; overflow: visible !important; }
+  .plachta-scroll { overflow: visible !important; width: 100% !important; }
+  .plachta-entity { overflow: visible !important; box-shadow: none !important; }
 
   /* Kolory tła zachowane */
   .plachta-entity-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}

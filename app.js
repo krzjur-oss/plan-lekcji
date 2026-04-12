@@ -2251,8 +2251,8 @@ function plachtaDoPrint(selectedIds, layout, orient) {
   root.style.top = '';
   root.style.width = '';
 
-  // Ukryj całe UI aplikacji bezpośrednio przez JS
-  // (pewniejsze niż @media print – unika konfliktów specyficzności z innymi regułami)
+  // Ukryj UI aplikacji SYNCHRONICZNIE przed jakimkolwiek setTimeout/rAF
+  // – na mobile Chrome window.print() może pokazać dialog zanim setTimeout odpali
   const appEl = document.getElementById('app');
   const prevAppDisplay = appEl ? appEl.style.display : null;
   if (appEl) appEl.style.setProperty('display', 'none', 'important');
@@ -2268,11 +2268,15 @@ function plachtaDoPrint(selectedIds, layout, orient) {
   };
   window.addEventListener('afterprint', cleanup);
 
-  setTimeout(() => {
-    window.print();
-    // Fallback cleanup jeśli afterprint nie odpali (Safari/mobile)
-    setTimeout(cleanup, 2000);
-  }, 400);
+  // Dwa rAF: pierwszy czeka na koniec bieżącego frame (ukrycie #app),
+  // drugi czeka na następny paint – dopiero wtedy przeglądarka widzi zmiany DOM
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.print();
+      // Fallback cleanup jeśli afterprint nie odpali (Safari/mobile WebView)
+      setTimeout(cleanup, 3000);
+    });
+  });
 }
 
 // ── TOPBAR: przycisk "Strona główna" ─────────────────────
