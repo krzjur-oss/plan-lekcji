@@ -2067,32 +2067,154 @@ function plachtaPrint() {
       <a href="#" style="color:var(--accent)" onclick="document.querySelectorAll('.print-pick-cb').forEach(c=>c.checked=false);return false">Odznacz wszystkie</a>
     </div>
     <div class="print-pick-grid">${checkboxes}</div>
-    <div style="font-size:11px;color:var(--text3);margin-top:12px">Ka\u017cda pozycja drukuje si\u0119 na osobnej stronie (je\u015bli si\u0119 nie mie\u015bci).</div>`,
+    <div style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--text2);font-weight:600">Układ na stronie:</span>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+        <input type="radio" name="print-layout" value="auto" checked> Auto (2 na stronę jeśli pasują)
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+        <input type="radio" name="print-layout" value="one"> 1 na stronę
+      </label>
+    </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--text2);font-weight:600">Orientacja:</span>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+        <input type="radio" name="print-orient" value="portrait" checked> Pionowa (portrait)
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+        <input type="radio" name="print-orient" value="landscape"> Pozioma (landscape)
+      </label>
+    </div>`,
     () => {
-      const selected = new Set([...document.querySelectorAll('.print-pick-cb:checked')].map(c => c.value));
-      if (!selected.size) { notify('Nic nie zaznaczono', 'info'); return; }
+      const selected = [...document.querySelectorAll('.print-pick-cb:checked')].map(c => c.value);
+      if (!selected.length) { notify('Nic nie zaznaczono', 'info'); return; }
+      const layout = document.querySelector('input[name="print-layout"]:checked').value;
+      const orient = document.querySelector('input[name="print-orient"]:checked').value;
       closeModal();
-      const allBlocks = document.querySelectorAll('#plachta-wrapper .plachta-entity');
-      allBlocks.forEach(el => {
-        const eid = el.dataset.entityId;
-        el.style.display = (!eid || !selected.has(eid)) ? 'none' : '';
-      });
-
-      // Przywróć widoczność po zakończeniu druku (afterprint lub fallback)
-      const restore = () => {
-        allBlocks.forEach(el => { el.style.display = ''; });
-        window.removeEventListener('afterprint', restore);
-      };
-      window.addEventListener('afterprint', restore);
-
-      // Daj przeglądarce czas na przeliczenie layoutu przed wydrukiem
-      setTimeout(() => {
-        window.print();
-        // Fallback dla przeglądarek bez afterprint
-        setTimeout(restore, 1000);
-      }, 300);
+      plachtaDoPrint(selected, layout, orient);
     }
   );
+}
+
+function plachtaDoPrint(selectedIds, layout, orient) {
+  // Pobierz oryginalne bloki DOM
+  const allBlocks = [...document.querySelectorAll('#plachta-wrapper .plachta-entity')];
+  const selectedBlocks = allBlocks.filter(el => selectedIds.includes(el.dataset.entityId));
+
+  if (!selectedBlocks.length) return;
+
+  // Wymiary strony w px przy 96dpi (A4)
+  const isLandscape = orient === 'landscape';
+  const pageW = isLandscape ? 1122 : 793;  // px ~ A4
+  const pageH = isLandscape ? 793 : 1122;
+  const margin = 32; // px margines
+  const usableW = pageW - margin * 2;
+  const usableH = pageH - margin * 2;
+
+  // Zmierz wysokość każdego bloku (tymczasowo pokaż)
+  allBlocks.forEach(el => { el.style.visibility = 'hidden'; el.style.display = ''; });
+  const heights = selectedBlocks.map(el => el.getBoundingClientRect().height);
+  const widths  = selectedBlocks.map(el => el.getBoundingClientRect().width);
+  allBlocks.forEach(el => { el.style.visibility = ''; el.style.display = 'none'; });
+
+  // Buduj strony: pakuj po 2 jeśli pasują
+  const pages = [];
+  let i = 0;
+  while (i < selectedBlocks.length) {
+    if (layout === 'one') {
+      pages.push([i]);
+      i++;
+      continue;
+    }
+    // Sprawdź czy dwie encje zmieszczą się razem
+    const h1 = heights[i];
+    const h2 = i + 1 < heights.length ? heights[i + 1] : null;
+    const w1 = widths[i];
+    const w2 = i + 1 < widths.length ? widths[i + 1] : null;
+
+    let paired = false;
+    if (h2 !== null) {
+      const fitsVertical   = (h1 + h2 + 20) <= usableH && Math.max(w1, w2) <= usableW;
+      const fitsHorizontal = (w1 + w2 + 20) <= usableW && Math.max(h1, h2) <= usableH;
+      if (fitsVertical || fitsHorizontal) {
+        pages.push([i, i + 1, fitsVertical ? 'vertical' : 'horizontal']);
+        i += 2;
+        paired = true;
+      }
+    }
+    if (!paired) {
+      pages.push([i]);
+      i++;
+    }
+  }
+
+  // Zbuduj tymczasowy kontener do druku
+  const printStyle = document.createElement('style');
+  printStyle.id = 'plachta-print-style';
+  printStyle.textContent = `
+    @media print {
+      body > *:not(#plachta-print-root) { display: none !important; }
+      #plachta-print-root { display: block !important; }
+    }
+    @page { size: A4 ${orient}; margin: 10mm; }
+    #plachta-print-root { display: none; font-family: sans-serif; }
+    .ppr-page { page-break-after: always; break-after: page; display: flex; gap: 12px; align-items: flex-start; }
+    .ppr-page:last-child { page-break-after: avoid; break-after: avoid; }
+    .ppr-page.ppr-vertical { flex-direction: column; }
+    .ppr-page.ppr-horizontal { flex-direction: row; }
+    .ppr-page .plachta-entity { flex: 1 1 auto; min-width: 0; overflow: visible !important; border: 1px solid #ddd; border-radius: 6px; box-shadow: none; }
+    .ppr-page.ppr-vertical .plachta-entity { width: 100%; }
+    .ppr-page.ppr-horizontal .plachta-entity { width: 50%; flex: 1 1 50%; }
+    .plachta-scroll { overflow: visible !important; }
+    .plachta-tbl { width: 100%; border-collapse: collapse; font-size: 9px; }
+    .plachta-tbl th, .plachta-tbl td { border: 1px solid #e2e8f0; padding: 2px 3px; }
+    .plachta-entity-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ph-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .ph-g { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  `;
+  document.head.appendChild(printStyle);
+
+  const root = document.createElement('div');
+  root.id = 'plachta-print-root';
+
+  pages.forEach(page => {
+    const [idx1, idx2OrDir, dir] = page;
+    const direction = typeof idx2OrDir === 'string' ? idx2OrDir : (typeof dir === 'string' ? dir : 'vertical');
+    const hasTwo = typeof idx2OrDir === 'number';
+
+    const pageDiv = document.createElement('div');
+    pageDiv.className = `ppr-page ppr-${direction}`;
+
+    // Klonuj bloki (żeby nie ruszyć oryginału)
+    const clone1 = selectedBlocks[idx1].cloneNode(true);
+    clone1.style.display = '';
+    clone1.style.visibility = '';
+    pageDiv.appendChild(clone1);
+
+    if (hasTwo) {
+      const clone2 = selectedBlocks[idx2OrDir].cloneNode(true);
+      clone2.style.display = '';
+      clone2.style.visibility = '';
+      pageDiv.appendChild(clone2);
+    }
+
+    root.appendChild(pageDiv);
+  });
+
+  document.body.appendChild(root);
+
+  const cleanup = () => {
+    root.remove();
+    printStyle.remove();
+    allBlocks.forEach(el => { el.style.display = ''; el.style.visibility = ''; });
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+
+  setTimeout(() => {
+    window.print();
+    setTimeout(cleanup, 1200);
+  }, 350);
 }
 
 // ── TOPBAR: przycisk "Strona główna" ─────────────────────

@@ -445,18 +445,6 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .print-pick-item input{accent-color:var(--accent);width:14px;height:14px;flex-shrink:0}
 @media print{
   html,body{height:auto!important;overflow:visible!important}
-  #app{display:block!important;height:auto!important;overflow:visible!important;grid-template-columns:1fr!important;grid-template-rows:none!important}
-  #topbar,#sidebar-left,#sidebar-right,#plachta-toolbar,.plachta-legend,
-  #modal-overlay,#welcomeScreen,#wizardOverlay,#wizDraftModal,
-  #sidebar-toggle,.sidebar-overlay{display:none!important}
-  #main{overflow:visible!important;height:auto!important;display:block!important}
-  .page{display:none!important;height:auto!important;overflow:visible!important}
-  #page-plachta{display:block!important;height:auto!important;overflow:visible!important}
-  #plachta-wrapper{overflow:visible!important;padding:0!important;height:auto!important}
-  .plachta-container{display:block!important;width:100%!important;min-width:0!important}
-  .plachta-scroll{overflow:visible!important;width:100%!important}
-  .plachta-entity{break-before:page;page-break-before:always;break-inside:avoid;page-break-inside:avoid;margin-bottom:0;overflow:visible!important;width:100%!important}
-  .plachta-entity:first-child{break-before:auto;page-break-before:auto}
   .plachta-entity-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ph-card{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .ph-g{-webkit-print-color-adjust:exact;print-color-adjust:exact}
