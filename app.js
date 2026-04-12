@@ -2118,11 +2118,9 @@ function plachtaDoPrint(selectedIds, layout, orient) {
   const printStyle = document.createElement('style');
   printStyle.id = 'plachta-print-style';
   printStyle.textContent = `
-    @media print {
-      body > *:not(#plachta-print-root) { display: none !important; }
-      #plachta-print-root { display: block !important; }
-    }
     @page { size: A4 ${orient}; margin: ${marginMM}mm; }
+
+    /* Root kontenera druku */
     #plachta-print-root {
       display: block;
       position: fixed; left: -99999px; top: 0;
@@ -2130,7 +2128,7 @@ function plachtaDoPrint(selectedIds, layout, orient) {
       font-family: 'Inter', sans-serif;
       background: #fff;
     }
-    /* Reset sticky pozycjonowania – przy druku i pomiarach psuje layout */
+    /* Reset sticky pozycjonowania – psuje layout przy pomiarach i druku */
     #plachta-print-root .plachta-entity-header { position: static !important; }
     #plachta-print-root .plachta-tbl thead th   { position: static !important; }
     #plachta-print-root .plachta-tbl .ph-hour-col{ position: static !important; }
@@ -2247,21 +2245,32 @@ function plachtaDoPrint(selectedIds, layout, orient) {
     root.appendChild(pageDiv);
   });
 
-  // Teraz przełącz root na display:none – przy druku @media print go pokaże
+  // Przenieś root z trybu pomiarowego (fixed off-screen) na normalny
   root.style.position = '';
   root.style.left = '';
-  root.style.display = 'none';
+  root.style.top = '';
+  root.style.width = '';
+
+  // Ukryj całe UI aplikacji bezpośrednio przez JS
+  // (pewniejsze niż @media print – unika konfliktów specyficzności z innymi regułami)
+  const appEl = document.getElementById('app');
+  const prevAppDisplay = appEl ? appEl.style.display : null;
+  if (appEl) appEl.style.setProperty('display', 'none', 'important');
 
   const cleanup = () => {
     root.remove();
     printStyle.remove();
+    if (appEl) {
+      if (prevAppDisplay !== null && prevAppDisplay !== '') appEl.style.display = prevAppDisplay;
+      else appEl.style.removeProperty('display');
+    }
     window.removeEventListener('afterprint', cleanup);
   };
   window.addEventListener('afterprint', cleanup);
 
   setTimeout(() => {
     window.print();
-    // Fallback cleanup jeśli afterprint nie odpali (Safari)
+    // Fallback cleanup jeśli afterprint nie odpali (Safari/mobile)
     setTimeout(cleanup, 2000);
   }, 400);
 }
