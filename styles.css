@@ -174,6 +174,8 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .time-input{width:80px;background:#fff;border:1px solid var(--border2);border-radius:var(--r);color:var(--text);padding:4px 7px;font-family:var(--mono);font-size:12px;outline:none}
 .time-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(37,99,235,.1)}
 .time-sep{color:var(--text3);font-size:12px}
+.btn-insert-hour{width:20px;height:20px;border-radius:50%;border:1.5px dashed var(--border2);background:transparent;color:var(--text3);font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s,color .15s,background .15s}
+.btn-insert-hour:hover{border-color:var(--accent);color:var(--accent);background:rgba(37,99,235,.07)}
 /* BADGES */
 .badge-conflict{display:inline-flex;align-items:center;gap:4px;background:var(--red-dim);color:var(--red);border:1px solid #fca5a5;border-radius:var(--r);padding:2px 8px;font-size:11px;font-weight:600}
 .badge-ok{display:inline-flex;align-items:center;gap:4px;background:var(--green-dim);color:var(--green);border:1px solid #86efac;border-radius:var(--r);padding:2px 8px;font-size:11px;font-weight:600}

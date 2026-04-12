@@ -560,9 +560,15 @@ function renderTableAssignments(){
     </tr>`;}).join('');
 }
 // HOURS
+function recalcHourNums(){
+  // Zachowaj num=0 jeśli pierwsza godzina ma num=0, inaczej numeruj od 1
+  const base=S.hours.length&&S.hours[0].num===0?0:1;
+  S.hours.forEach((h,i)=>h.num=base+i);
+}
 function renderHours(){
   const list=document.getElementById('hours-list');if(!list)return;
   list.innerHTML=S.hours.map((h,i)=>`<div class="hour-row">
+    <button class="btn-insert-hour" onclick="insertHour(${i},'before')" title="Wstaw godzinę przed">＋</button>
     <span class="hour-num-lbl">${h.num}</span>
     <input class="time-input" type="time" value="${h.start}" onchange="S.hours[${i}].start=this.value;saveState()">
     <span class="time-sep">–</span>
@@ -570,8 +576,28 @@ function renderHours(){
     <button class="btn btn-danger btn-sm btn-icon" onclick="removeHour(${i})" title="Usu\u0144">\u2715</button>
   </div>`).join('');
 }
-function addHour(){const last=S.hours[S.hours.length-1];const nextNum=last?last.num+1:1;S.hours.push({num:nextNum,start:'00:00',end:'00:00'});saveState();renderHours();renderTimetable();}
-function removeHour(i){S.hours.splice(i,1);const base=S.hours.length&&S.hours[0].num===0?0:1;S.hours.forEach((h,idx)=>h.num=base+idx);saveState();renderHours();renderTimetable();}
+function insertHour(i,pos){
+  const idx=pos==='before'?i:i+1;
+  // Podpowiedz czas na podstawie sąsiadów
+  const prev=S.hours[idx-1],next=S.hours[idx];
+  const start=next?next.start:(prev?prev.end:'00:00');
+  const end=next?next.end:'00:00';
+  S.hours.splice(idx,0,{num:0,start,end});
+  recalcHourNums();
+  saveState();renderHours();renderTimetable();
+  // Przewiń do nowej pozycji
+  setTimeout(()=>{
+    const rows=document.querySelectorAll('#hours-list .hour-row');
+    if(rows[idx])rows[idx].scrollIntoView({block:'nearest',behavior:'smooth'});
+  },50);
+}
+function addHour(){
+  // Wstaw po ostatniej godzinie
+  const last=S.hours[S.hours.length-1];
+  S.hours.push({num:last?last.num+1:1,start:'00:00',end:'00:00'});
+  saveState();renderHours();renderTimetable();
+}
+function removeHour(i){S.hours.splice(i,1);recalcHourNums();saveState();renderHours();renderTimetable();}
 // STATS
 function renderStats(){
   const el=document.getElementById('stats-content');if(!el)return;
