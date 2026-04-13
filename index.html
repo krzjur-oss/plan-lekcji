@@ -325,6 +325,7 @@
     <button class="top-tab active" data-tab="timetable" onclick="switchTab('timetable')">📅 Plan lekcji</button>
     <button class="top-tab" data-tab="plachta" onclick="switchTab('plachta')">📄 Płachta</button>
     <button class="top-tab" data-tab="data" onclick="switchTab('data')">📋 Dane</button>
+    <button class="top-tab" data-tab="special" onclick="switchTab('special')">🌟 Specjalne</button>
     <button class="top-tab" data-tab="stats" onclick="switchTab('stats')">📊 Statystyki</button>
     <button class="top-tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Ustawienia</button>
   </nav>
@@ -464,6 +465,53 @@
     </div>
     <div id="plachta-wrapper" style="flex:1;overflow:auto;padding:12px;background:var(--bg)"></div>
   </div>
+  <!-- SPECJALNE -->
+  <div class="page" id="page-special">
+    <div class="page-content" style="max-width:1100px">
+
+      <!-- nagłówek modułu -->
+      <div class="special-module-header">
+        <div>
+          <h2 class="special-module-title">🌟 Nauczanie specjalne</h2>
+          <p class="special-module-desc">Nauczanie indywidualne (NI), rewalidacja oraz godziny wspomagające. Uczniowie i ich plany widoczne są również w planie przypisanego nauczyciela.</p>
+        </div>
+        <button class="btn btn-primary" onclick="modalSpecialStudent()">+ Dodaj ucznia</button>
+      </div>
+
+      <!-- lista uczniów -->
+      <div id="special-students-list"></div>
+
+      <!-- szczegóły wybranego ucznia -->
+      <div id="special-student-detail" style="display:none">
+        <div class="special-detail-header">
+          <div>
+            <span id="ssd-badge" class="special-type-badge"></span>
+            <span id="ssd-name" style="font-size:17px;font-weight:700;color:var(--text1)"></span>
+            <span id="ssd-class" style="font-size:13px;color:var(--text3);margin-left:8px"></span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="modalSpecialStudent(window._specialActiveStudentId)">✏️ Edytuj ucznia</button>
+            <button class="btn btn-primary btn-sm" onclick="modalSpecialAssignment()">+ Dodaj godziny</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeSpecialDetail()">✕ Zamknij</button>
+          </div>
+        </div>
+
+        <!-- przypisania ucznia -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Przypisania godzin</div>
+          <div id="ssd-assignments"></div>
+        </div>
+
+        <!-- plan tygodniowy ucznia -->
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Plan tygodniowy</div>
+          <div id="ssd-timetable" class="special-timetable-wrap"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div class="page" id="page-settings">
     <div class="page-content" style="max-width:480px">

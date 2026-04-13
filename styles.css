@@ -21,11 +21,12 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 #topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:4px;box-shadow:var(--shadow);z-index:50}
 .logo{font-size:15px;font-weight:700;color:var(--accent);letter-spacing:-.3px;padding-right:16px;margin-right:8px;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0}
 .logo span{color:var(--text3);font-weight:500}
-.top-tabs{display:flex;height:100%}
-.top-tab{display:flex;align-items:center;gap:5px;padding:0 14px;height:100%;font-size:12.5px;font-weight:500;color:var(--text2);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;font-family:var(--sans);transition:color .15s,border-color .15s;white-space:nowrap}
+.top-tabs{display:flex;height:100%;overflow-x:auto;overflow-y:hidden;flex-shrink:1;min-width:0;scrollbar-width:none}
+.top-tabs::-webkit-scrollbar{display:none}
+.top-tab{display:flex;align-items:center;gap:5px;padding:0 14px;height:100%;font-size:12.5px;font-weight:500;color:var(--text2);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;font-family:var(--sans);transition:color .15s,border-color .15s;white-space:nowrap;flex-shrink:0}
 .top-tab:hover{color:var(--text);background:var(--bg3)}
 .top-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-.top-actions{display:flex;gap:6px;margin-left:auto;align-items:center}
+.top-actions{display:flex;gap:6px;margin-left:auto;align-items:center;flex-shrink:0}
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--r);font-size:12px;font-weight:500;font-family:var(--sans);cursor:pointer;transition:all .15s;border:1px solid transparent;white-space:nowrap}
 .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -481,3 +482,207 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .about-kbd{display:inline-flex;align-items:center;padding:2px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;font-family:var(--mono);font-size:11px;color:var(--text);font-weight:600;min-width:80px;justify-content:center;flex-shrink:0;}
 
 
+
+/* ═══════════════════════════════════════════════════════
+   MODUŁ SPECJALNE
+═══════════════════════════════════════════════════════ */
+
+/* Nagłówek modułu */
+.special-module-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+.special-module-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text1);
+  margin: 0 0 4px;
+}
+.special-module-desc {
+  font-size: 13px;
+  color: var(--text3);
+  margin: 0;
+  max-width: 560px;
+}
+
+/* Pusta lista */
+.special-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text3);
+  font-size: 14px;
+  background: #fff;
+  border: 2px dashed var(--border);
+  border-radius: var(--r-md);
+}
+
+/* Siatka kart uczniów */
+.special-students-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.special-student-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+  box-shadow: var(--shadow);
+}
+.special-student-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(37,99,235,.12);
+}
+.special-student-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.18);
+}
+.ssc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.ssc-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  opacity: .6;
+  transition: opacity .15s;
+}
+.ssc-actions button:hover { opacity: 1; }
+.ssc-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text1);
+  margin-bottom: 4px;
+}
+.ssc-class {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.ssc-hours {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+/* Badge typów */
+.special-type-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  color: #fff;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+}
+
+/* Panel szczegółów ucznia */
+.special-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+/* Lista przypisań */
+.special-asgn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.special-asgn-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+.special-asgn-item.done {
+  border-left: 3px solid var(--green);
+}
+.sa-subject {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text1);
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sa-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text2);
+  flex: 1;
+  flex-wrap: wrap;
+}
+.sa-progress { font-size: 12px; white-space: nowrap; }
+.sa-done { color: var(--green); font-weight: 600; }
+.sa-todo { color: var(--accent); }
+.sa-actions { display: flex; gap: 6px; margin-left: auto; }
+
+/* Tagi na kartach i w liście */
+.sa-tag, .sp-card-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  letter-spacing: .2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.sa-tag-wc, .sp-wc   { background: #dbeafe; color: #1d4ed8; }
+.sa-tag-ind, .sp-ind  { background: #ede9fe; color: #5b21b6; }
+.sa-tag-rewa,.sp-rewa { background: #cffafe; color: #0e7490; }
+.sp-supp              { background: #fef3c7; color: #92400e; }
+
+/* Plan tygodniowy ucznia */
+.special-timetable-wrap {
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+}
+.special-timetable {
+  min-width: 620px;
+}
+
+/* Overlay karty w planie klasy/nauczyciela */
+.sp-overlay-card {
+  margin-top: 3px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.sp-overlay-card .lc-subject {
+  font-size: 11px;
+}
