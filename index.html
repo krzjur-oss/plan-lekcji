@@ -112,7 +112,9 @@
       <div class="wstep-line" id="wl3"></div>
       <div class="wstep" id="ws4"><div class="wstep-num">5</div><div class="wstep-label">Przedmioty</div></div>
       <div class="wstep-line" id="wl4"></div>
-      <div class="wstep" id="ws5"><div class="wstep-num">6</div><div class="wstep-label">Godziny</div></div>
+      <div class="wstep" id="ws5"><div class="wstep-num">6</div><div class="wstep-label">Specjalne</div></div>
+      <div class="wstep-line" id="wl5"></div>
+      <div class="wstep" id="ws6"><div class="wstep-num">7</div><div class="wstep-label">Godziny</div></div>
     </div>
     <div class="wiz-body">
 
@@ -231,8 +233,22 @@
         </div>
       </div>
 
-      <!-- KROK 6: Godziny + Podsumowanie -->
+      <!-- KROK 6: Specjalne (opcjonalne) -->
       <div class="wiz-step" id="wStep5">
+        <div class="wcard">
+          <div class="wcard-title">🌟 Nauczanie specjalne <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:6px">(opcjonalny)</span></div>
+          <div class="wcard-desc">Dodaj uczniów objętych nauczaniem indywidualnym (NI), rewalidacją lub wspomaganiem. Możesz to zrobić teraz lub później w zakładce <strong>🌟 Specjalne</strong>.</div>
+          <div class="wiz-col-header" style="grid-template-columns:1fr 1fr 1fr auto">
+            <span>Imię</span><span>Nazwisko</span><span>Typ</span><span></span>
+          </div>
+          <div class="wiz-list" id="wSpecialList"></div>
+          <button class="wiz-add-btn" onclick="wizAddSpecialStudent()">＋ Dodaj ucznia</button>
+          <div style="margin-top:8px"><span class="wiz-count-badge" id="wSpecialCount">0 uczniów</span></div>
+        </div>
+      </div>
+
+      <!-- KROK 7: Godziny + Podsumowanie -->
+      <div class="wiz-step" id="wStep6">
         <div class="wcard">
           <div class="wcard-title">⏱ Godziny lekcyjne</div>
           <div class="wcard-desc">Ustaw godziny lekcyjne lub zostaw domyślne. Możesz je zmienić w dowolnym momencie w zakładce Ustawienia.</div>
@@ -249,7 +265,7 @@
     </div><!-- /wiz-body -->
     <div class="wiz-footer">
       <div class="wiz-footer-left">
-        <div class="wiz-footer-info" id="wizFooterInfo">Krok 1 z 6</div>
+        <div class="wiz-footer-info" id="wizFooterInfo">Krok 1 z 7</div>
         <div class="wiz-autosave" id="wizAutosaveStatus">💾 Autosave aktywny</div>
       </div>
       <div class="wiz-btns">

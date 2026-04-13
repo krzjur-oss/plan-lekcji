@@ -1353,7 +1353,7 @@ function closeMobileSidebar(){
 // STRONA POWITALNA + KREATOR
 // ═══════════════════════════════════════════════════════
 const WIZ_DRAFT_KEY = 'planlekcji_wiz_draft';
-const WIZ_STEPS = 6;
+const WIZ_STEPS = 7;
 function wizUid() { return uid(); }
 let wizCurrentStep = 0;
 let wizDraftTimer = null;
@@ -1365,7 +1365,8 @@ let wizData = {
   teachers: [],   // {id, first, last, short}
   rooms: [],      // {id, name, desc}
   subjects: [],   // {id, name, short, color}
-  hours: []       // {num, start, end}
+  hours: [],      // {num, start, end}
+  specialStudents: [] // {id, firstName, lastName, type, note}
 };
 
 // ── STRONA POWITALNA ────────────────────────────────────
@@ -1493,7 +1494,8 @@ function wizOpen(fromCopy) {
     wizData = {
       schoolName: '', schoolShort: '', year: '2025/2026',
       classes: [], teachers: [], rooms: [], subjects: [],
-      hours: JSON.parse(JSON.stringify(DEFAULT_HOURS))
+      hours: JSON.parse(JSON.stringify(DEFAULT_HOURS)),
+      specialStudents: []
     };
   }
   wizCurrentStep = 0;
@@ -1559,7 +1561,8 @@ function wizRenderStep() {
   if (wizCurrentStep === 2) wizRenderTeachers();
   if (wizCurrentStep === 3) wizRenderRooms();
   if (wizCurrentStep === 4) wizRenderSubjects();
-  if (wizCurrentStep === 5) { wizRenderHours(); wizRenderSummary(); }
+  if (wizCurrentStep === 5) wizRenderSpecialStudents();
+  if (wizCurrentStep === 6) { wizRenderHours(); wizRenderSummary(); }
 }
 
 function wizCollectStep(step) {
@@ -1847,6 +1850,35 @@ function wizCollectHours() {
 }
 
 // ── PODSUMOWANIE ─────────────────────────────────────────
+function wizRenderSpecialStudents() {
+  if (!wizData.specialStudents) wizData.specialStudents = [];
+  const list = document.getElementById('wSpecialList');
+  if (!list) return;
+  if (!wizData.specialStudents.length) {
+    list.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px 0">Brak uczniów — krok opcjonalny. Możesz dodać uczniów specjalnych po uruchomieniu planu w zakładce 🌟 Specjalne.</div>';
+  } else {
+    list.innerHTML = wizData.specialStudents.map((s, i) => `
+      <div class="wiz-row">
+        <input value="${escH(s.firstName)}" placeholder="Imię" onchange="wizData.specialStudents[${i}].firstName=this.value">
+        <input value="${escH(s.lastName)}" placeholder="Nazwisko" onchange="wizData.specialStudents[${i}].lastName=this.value">
+        <select onchange="wizData.specialStudents[${i}].type=this.value">
+          <option value="NI" ${s.type==='NI'?'selected':''}>NI — Nauczanie indywidualne</option>
+          <option value="REW" ${s.type==='REW'?'selected':''}>Rewalidacja</option>
+          <option value="WSP" ${s.type==='WSP'?'selected':''}>Wspomaganie</option>
+        </select>
+        <button class="wiz-row-del" onclick="wizData.specialStudents.splice(${i},1);wizRenderSpecialStudents()">✕</button>
+      </div>`).join('');
+  }
+  document.getElementById('wSpecialCount').textContent =
+    wizData.specialStudents.length + ' uczni' + (wizData.specialStudents.length === 1 ? 'eń' : wizData.specialStudents.length < 5 ? 'ów' : 'ów');
+}
+
+function wizAddSpecialStudent() {
+  if (!wizData.specialStudents) wizData.specialStudents = [];
+  wizData.specialStudents.push({id: wizUid(), firstName: '', lastName: '', type: 'NI', note: ''});
+  wizRenderSpecialStudents();
+}
+
 function wizRenderSummary() {
   const el = document.getElementById('wizSummary');
   el.innerHTML = `
@@ -1857,12 +1889,13 @@ function wizRenderSummary() {
     <div class="wiz-summary-row">🏫 <strong>Sale:</strong> ${wizData.rooms.length}</div>
     <div class="wiz-summary-row">📚 <strong>Przedmioty:</strong> ${wizData.subjects.length}</div>
     <div class="wiz-summary-row">⏱ <strong>Godziny lekcyjne:</strong> ${wizData.hours.length} (${wizData.hours.map(h=>h.num).join(', ')})</div>
+    <div class="wiz-summary-row">🌟 <strong>Uczniowie specjalni:</strong> ${(wizData.specialStudents||[]).length}</div>
   `;
 }
 
 // ── ZAKOŃCZENIE KREATORA ─────────────────────────────────
 function wizFinish() {
-  wizCollectStep(5);
+  wizCollectStep(6);
   // Apply to S
   S.meta.schoolName = wizData.schoolName;
   S.meta.schoolShort = wizData.schoolShort;
@@ -1876,8 +1909,8 @@ function wizFinish() {
     id: uid(), firstname: t.first, lastname: t.last,
     name: (t.first + ' ' + t.last).trim(),
     short: t.short || (t.first[0]||'') + t.last.slice(0,3).toUpperCase(),
-    subjects: [],  // uzupełniane ręcznie w zakładce Dane → Nauczyciele
-    maxHours: 18   // domyślne pensum
+    subjects: [],
+    maxHours: 18
   }));
   S.rooms = wizData.rooms.map(r => ({id: uid(), name: r.name, desc: r.desc || ''}));
   S.subjects = wizData.subjects.map((s, i) => ({
@@ -1887,6 +1920,13 @@ function wizFinish() {
   S.schoolGroups = [];
   S.assignments = [];
   S.lessons = {};
+  // Uczniowie specjalni z kreatora
+  S.specialStudents = (wizData.specialStudents || []).map(s => ({
+    id: uid(), firstName: s.firstName, lastName: s.lastName,
+    type: s.type, classId: null, note: s.note || ''
+  }));
+  S.specialAssignments = [];
+  S.specialLessons = {};
   saveState();
   wizClearDraft();
   clearInterval(wizDraftTimer);
@@ -1925,7 +1965,8 @@ function wizDraftResume() {
     year: draft.year || '2025/2026',
     classes: draft.classes || [], teachers: draft.teachers || [],
     rooms: draft.rooms || [], subjects: draft.subjects || [],
-    hours: draft.hours || JSON.parse(JSON.stringify(DEFAULT_HOURS))
+    hours: draft.hours || JSON.parse(JSON.stringify(DEFAULT_HOURS)),
+    specialStudents: draft.specialStudents || []
   };
   wizCurrentStep = draft.step || 0;
   wizRenderStep();
