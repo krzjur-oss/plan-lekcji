@@ -59,6 +59,11 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .sb-item.active .sb-badge{background:var(--accent-mid);color:var(--accent);border-color:var(--accent-mid)}
 .sb-actions{display:none;gap:2px}
 .sb-item:hover .sb-actions{display:flex}
+.sb-item.active .sb-actions{display:flex}
+@media (hover: none) {
+  .sb-actions{display:none}
+  .sb-item.active .sb-actions{display:flex}
+}
 .sb-actions button{background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:3px;font-size:11px;color:var(--text3);line-height:1}
 .sb-actions button:hover{background:var(--border);color:var(--text)}
 .sb-empty{padding:8px 12px;font-size:11px;color:var(--text3)}
@@ -83,8 +88,11 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .cell:hover{background:var(--accent-dim)}
 .cell.drag-over{background:#dbeafe;outline:2px dashed var(--accent);outline-offset:-2px}
 .cell.has-conflict{background:var(--red-dim)!important}
+.cell.has-special{height:auto;min-height:54px;display:flex;flex-direction:column;gap:2px;align-items:stretch;}
 /* LESSON CARD */
 .lesson-card{border-radius:4px;padding:3px 5px;height:100%;min-height:48px;cursor:grab;position:relative;border-left:3px solid;transition:transform .1s,box-shadow .1s;overflow:hidden}
+.lesson-card.conflict{outline:2px solid #dc2626;outline-offset:-1px;}
+.lesson-card.conflict::after{content:'⚠';position:absolute;top:2px;right:18px;font-size:10px;color:#dc2626;font-weight:700;}
 .lesson-card:hover{transform:scale(1.02);box-shadow:var(--shadow-md)}
 .lesson-card:active{cursor:grabbing}
 .lesson-card.dragging{opacity:.4}
@@ -204,6 +212,8 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .section-heading{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
 .assign-sort-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 /* ── GRUPY ── */
+.cell.has-special > .lesson-card,
+.cell.has-special > .cell-groups { flex-shrink: 0; height: 54px; }
 .cell-groups{display:flex;gap:2px;height:100%;align-items:stretch;}
 .cell-groups .lesson-card{flex:1;min-width:0;}
 .lc-group{font-size:9px;font-weight:700;letter-spacing:.04em;padding:1px 4px;border-radius:2px;margin-bottom:2px;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:baseline;gap:3px;min-width:0}
@@ -681,9 +691,12 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 
 /* Overlay karty w planie klasy/nauczyciela */
 .sp-overlay-card {
-  margin-top: 3px;
   font-size: 11px;
   cursor: pointer;
+  flex-shrink: 0;
+  border-top: 1px dashed rgba(0,0,0,0.12);
+  padding-top: 2px;
+  margin-top: 0;
 }
 .sp-overlay-card .lc-subject {
   font-size: 11px;

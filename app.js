@@ -210,8 +210,9 @@ function buildCard(assign,lesson,key,isConf,extra){
   const subj=getSubject(assign.subjectId),teacher=getTeacher(assign.teacherId),room=getRoom(assign.roomId);
   const color=subj&&subj.color?subj.color:'#94a3b8';
   const div=document.createElement('div');
-  div.className='lesson-card';div.draggable=true;div.dataset.key=key;div.dataset.assignId=assign.id;
-  div.style.borderLeftColor=color;div.style.background=hexRgba(color,0.1);
+  div.className='lesson-card'+(isConf?' conflict':'');div.draggable=true;div.dataset.key=key;div.dataset.assignId=assign.id;
+  if(isConf){div.title='⚠ Konflikt: nauczyciel lub sala zajęta w tej godzinie';}
+  div.style.borderLeftColor=isConf?'#dc2626':color;div.style.background=isConf?'#fee2e2':hexRgba(color,0.1);
   const sname=subj?(subj.short||subj.name):'?';
   const tname=teacher?(teacher.short||teacher.name.split(' ').pop()):'';
   const rname=room?(room.short||room.name):'';
@@ -2683,7 +2684,7 @@ function injectSpecialIntoTimetable(){
       const cell=wrap.querySelector(`.cell[data-day="${d}"][data-hour="${h}"]`);
       if(!cell)return;
       const card=buildSpecialOverlayCard(a,s,k,specConf.has(k),isNIwithClass,hasSupport);
-      if(card)cell.appendChild(card);
+      if(card){cell.classList.add('has-special');cell.appendChild(card);}
     });
   }
   // Plan nauczyciela — pokaż jego lekcje specjalne
@@ -2699,7 +2700,7 @@ function injectSpecialIntoTimetable(){
       if(!cell)return;
       const isSupport=a.supportTeacherId===activeViewId;
       const card=buildSpecialOverlayCard(a,s,k,specConf.has(k),false,isSupport);
-      if(card)cell.appendChild(card);
+      if(card){cell.classList.add('has-special');cell.appendChild(card);}
     });
   }
 }
