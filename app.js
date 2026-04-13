@@ -118,24 +118,39 @@ function detectConflicts(){
     }
   }
   // Cross-check: nauczyciele specjalni vs. główny plan
+  // Lekcje "z klasą" (withClass) nie są konfliktem — uczeń NI jest na tej samej lekcji co klasa
   if(typeof S!=='undefined'&&S.specialLessons){
     const mainSlots={};
+    // Buduj mapę: teacherId/roomId -> Set slotów z głównego planu
     Object.entries(S.lessons).forEach(([k,l])=>{
       const a=getAssign(l.assignmentId);if(!a)return;
       const p=k.split('|');const sl=p[1]+'|'+p[2];
       [a.teacherId,a.roomId].filter(Boolean).forEach(id=>{
-        if(!mainSlots[id])mainSlots[id]=[];
-        mainSlots[id].push(sl);
+        if(!mainSlots[id])mainSlots[id]=new Set();
+        mainSlots[id].add(sl+'|'+k); // zapisz też klucz lekcji klasy
       });
     });
     Object.keys(S.specialLessons).forEach(k=>{
       const l=S.specialLessons[k];
       const a=typeof getSpecialAssign==='function'?getSpecialAssign(l.assignmentId):null;
       if(!a)return;
+      // Pomiń lekcje "z klasą" — nie są konfliktem z planem klasy
+      if(a.withClass)return;
       const p=k.split('|');const sl=p[1]+'|'+p[2];
-      [a.teacherId,a.supportTeacherId,a.roomId].filter(Boolean).forEach(id=>{
-        if(mainSlots[id]&&mainSlots[id].includes(sl))conf.add(k);
+      // Sprawdź tylko nauczyciela wspomagającego i salę (nie prowadzącego — on jest z klasą)
+      [a.supportTeacherId,a.roomId].filter(Boolean).forEach(id=>{
+        if(mainSlots[id]){
+          mainSlots[id].forEach(entry=>{
+            if(entry.startsWith(sl+'|'))conf.add(k);
+          });
+        }
       });
+      // Dla lekcji indywidualnych sprawdź też prowadzącego
+      if(a.teacherId&&mainSlots[a.teacherId]){
+        mainSlots[a.teacherId].forEach(entry=>{
+          if(entry.startsWith(sl+'|'))conf.add(k);
+        });
+      }
     });
   }
   return conf;
@@ -2495,7 +2510,7 @@ function renderSpecialAssignmentsList(studentId){
   }).join('')+'</div>';
 }
 
-// ── Plan tygodniowy ucznia ────────────────────────────────
+// ── Plan tygodniowy ucznia NI ─────────────────────────────
 let specialDragData=null;
 
 function renderSpecialTimetable(studentId){
@@ -2503,50 +2518,178 @@ function renderSpecialTimetable(studentId){
   if(!wrap)return;
   const s=getSpecialStudent(studentId);
   if(!s){wrap.innerHTML='';return;}
-  // Sprawdź konflikty nauczycieli w planie specjalnym
   const specConf=detectSpecialConflicts();
+  const isNI=s.type==='ni';
+  const hasClass=isNI&&s.classId;
+
+  if(hasClass){
+    const cls=getClass(s.classId);
+    wrap.innerHTML=`<div class="sp-tbl-legend">
+      <span class="sp-leg sp-leg-class">📚 Plan klasy ${esc(cls?cls.name:'')}</span>
+      <span class="sp-leg sp-leg-wc">✅ Z klasą</span>
+      <span class="sp-leg sp-leg-ind">👤 Indywidualnie</span>
+      <span style="font-size:11px;color:var(--text3)">Kliknij szary kafelek klasy aby zaznaczyć "z klasą". Kliknij pustą komórkę aby dodać lekcję indywidualną.</span>
+    </div>`;
+  } else {
+    wrap.innerHTML='';
+  }
+
   const tbl=document.createElement('table');
   tbl.className='timetable special-timetable';
   const thead=tbl.createTHead(),hr=thead.insertRow();
   hr.innerHTML='<th>Godz.</th>'+DAYS.map(d=>`<th>${d}</th>`).join('');
   const tbody=tbl.createTBody();
+
   S.hours.forEach((h,hi)=>{
     const tr=tbody.insertRow();
     tr.innerHTML=`<td class="hour-col"><span class="hour-num">${h.num}</span><span class="hour-time">${h.start}–${h.end}</span></td>`;
     DAYS.forEach((_,di)=>{
-      const td=tr.insertCell();td.className='cell';
+      const td=tr.insertCell();
       td.dataset.day=di;td.dataset.hour=hi;td.dataset.studentId=studentId;
-      const lessons=getSpecialLessonsAt(studentId,di,hi);
-      if(lessons.length){
-        lessons.forEach(l=>{
+      const specLessons=getSpecialLessonsAt(studentId,di,hi);
+
+      if(hasClass){
+        const classLessons=getLessonsAt(s.classId,di,hi);
+        const hasClassLesson=classLessons.length>0;
+        const hasSpecLesson=specLessons.length>0;
+        if(hasClassLesson&&!hasSpecLesson){
+          td.className='cell sp-cell-class';
+          classLessons.forEach(l=>{
+            const card=buildClassPreviewCard(l,s,di,hi);
+            if(card)td.appendChild(card);
+          });
+        } else if(hasSpecLesson){
+          td.className='cell';
+          specLessons.forEach(l=>{
+            const card=buildSpecialCard(l,specConf.has(l.key));
+            if(card)td.appendChild(card);
+          });
+        } else {
+          td.className='cell sp-cell-empty';
+          td.addEventListener('click',e=>{
+            if(e.target.closest('.sp-card'))return;
+            openSpecialIndPicker(studentId,di,hi);
+          });
+        }
+      } else {
+        td.className='cell';
+        specLessons.forEach(l=>{
           const card=buildSpecialCard(l,specConf.has(l.key));
           if(card)td.appendChild(card);
         });
+        td.addEventListener('click',e=>{
+          if(e.target.closest('.sp-card'))return;
+          openSpecialIndPicker(studentId,di,hi);
+        });
       }
-      // klik w pustą komórkę — picker lekcji specjalnej
-      td.addEventListener('click',e=>{
-        if(e.target.closest('.sp-card'))return;
-        openSpecialPicker(studentId,di,hi);
-      });
-      // drag & drop
+
       td.addEventListener('dragover',e=>{e.preventDefault();td.classList.add('drag-over');});
       td.addEventListener('dragleave',()=>td.classList.remove('drag-over'));
       td.addEventListener('drop',e=>{
         e.preventDefault();td.classList.remove('drag-over');
         if(!specialDragData)return;
         const{fromKey,assignId}=specialDragData;
-        // usuń ze starego miejsca
-        if(fromKey){
-          const fp=fromKey.split('|');
-          setSpecialLesson(fp[0],+fp[1],+fp[2],fp[3],true);
-        }
+        if(fromKey){const fp=fromKey.split('|');setSpecialLesson(fp[0],+fp[1],+fp[2],fp[3],true);}
         setSpecialLesson(studentId,di,hi,assignId,false);
         renderSpecialTimetable(studentId);
         renderSpecialStudentList();
       });
     });
   });
-  wrap.innerHTML='';wrap.appendChild(tbl);
+  wrap.appendChild(tbl);
+}
+
+function buildClassPreviewCard(classLesson,student,day,hour){
+  const a=getAssign(classLesson.assignmentId);
+  if(!a)return null;
+  const subj=getSubject(a.subjectId),teacher=getTeacher(a.teacherId),room=getRoom(a.roomId);
+  const color=subj&&subj.color?subj.color:'#94a3b8';
+  const div=document.createElement('div');
+  div.className='lesson-card sp-class-preview';
+  div.title='Kliknij aby zaznaczyć jako \"z klasą\"';
+  div.style.borderLeftColor=color;
+  div.style.background=hexRgba(color,0.06);
+  div.style.opacity='0.72';
+  const sname=subj?(subj.short||subj.name):'?';
+  const tname=teacher?(teacher.short||teacher.name.split(' ').pop()):'';
+  const rname=room?(room.short||room.name):'';
+  div.innerHTML=
+    `<div class="lc-subject" style="color:${color}">${esc(sname)}<span class="sp-card-tag sp-cls-hint">+ kliknij</span></div>`+
+    (tname?`<div class="lc-teacher">${esc(tname)}</div>`:'')+
+    (rname?`<div class="lc-room">${esc(rname)}</div>`:'');
+  div.addEventListener('click',e=>{
+    e.stopPropagation();
+    openSpecialWithClassPicker(student,day,hour,a);
+  });
+  return div;
+}
+
+function openSpecialWithClassPicker(student,day,hour,classAssign){
+  const subj=getSubject(classAssign.subjectId);
+  const suppOpts='<option value="">— brak nauczyciela wspomagającego —</option>'+
+    alphaSort(S.teachers,'name').map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  const roomOpts='<option value="">— ta sama sala co klasa —</option>'+
+    alphaSort(S.rooms,'name').map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
+  openModal(`Lekcja z klasą — ${subj?esc(subj.name):'?'}`,`
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
+      Uczeń <strong>${esc(student.lastName+' '+student.firstName)}</strong> będzie na tej lekcji z klasą.
+    </div>
+    <div class="form-group"><label class="form-label">Nauczyciel wspomagający (opcjonalnie)</label>
+      <select id="swc-supp" class="form-select">${suppOpts}</select>
+    </div>
+    <div class="form-group"><label class="form-label">Sala (jeśli inna niż klasy)</label>
+      <select id="swc-room" class="form-select">${roomOpts}</select>
+    </div>`,
+  ()=>{
+    const suppId=document.getElementById('swc-supp').value||null;
+    const roomId=document.getElementById('swc-room').value||null;
+    let asgn=(S.specialAssignments||[]).find(a=>
+      a.studentId===student.id&&a.subjectId===classAssign.subjectId&&a.withClass);
+    if(!asgn){
+      asgn={id:uid(),studentId:student.id,subjectId:classAssign.subjectId,
+        teacherId:classAssign.teacherId,supportTeacherId:suppId,
+        roomId:roomId||classAssign.roomId,hoursPerWeek:0,withClass:true};
+      S.specialAssignments.push(asgn);
+    } else {
+      asgn.supportTeacherId=suppId;
+      if(roomId)asgn.roomId=roomId;
+    }
+    asgn.hoursPerWeek=(asgn.hoursPerWeek||0)+1;
+    setSpecialLesson(student.id,day,hour,asgn.id,false);
+    saveState();closeModal();
+    renderSpecialTimetable(student.id);
+    renderSpecialAssignmentsList(student.id);
+    renderSpecialStudentList();
+    notify('Oznaczono jako "z klasą"','success');
+  });
+}
+
+function openSpecialIndPicker(studentId,day,hour){
+  specialEnsureState();
+  const s=getSpecialStudent(studentId);if(!s)return;
+  const asgn=(S.specialAssignments||[]).filter(a=>a.studentId===studentId&&!a.withClass);
+  if(!asgn.length){
+    if(confirm('Brak przypisań indywidualnych. Dodać nowe?')){modalSpecialAssignment(null);}
+    return;
+  }
+  const pc={};
+  Object.values(S.specialLessons).forEach(l=>{pc[l.assignmentId]=(pc[l.assignmentId]||0)+1;});
+  const alreadyIn=new Set(getSpecialLessonsAt(studentId,day,hour).map(l=>l.assignmentId));
+  const rows=asgn.map(a=>{
+    const subj=getSubject(a.subjectId),teacher=getTeacher(a.teacherId);
+    const p=pc[a.id]||0,n=a.hoursPerWeek||0;
+    if(alreadyIn.has(a.id))return'';
+    const done=p>=n;
+    return`<tr class="picker-row${done?' picker-done':''}" onclick="pickSpecialLesson('${studentId}',${day},${hour},'${a.id}')">
+      <td>${subj?esc(subj.name):'?'}</td>
+      <td>${teacher?esc(teacher.name):''}</td>
+      <td style="text-align:center;${done?'color:var(--green)':''}">${p}/${n}</td>
+    </tr>`;
+  }).join('');
+  openModal('Dodaj lekcję indywidualną',
+    `<table class="picker-table"><thead><tr><th>Przedmiot</th><th>Nauczyciel</th><th>Godz.</th></tr></thead>
+     <tbody>${rows||'<tr><td colspan="3" style="text-align:center;color:var(--text3)">Brak dostępnych przypisań indywidualnych</td></tr>'}</tbody></table>`,
+    null,false);
 }
 
 function buildSpecialCard(lesson,isConf){
@@ -2565,64 +2708,41 @@ function buildSpecialCard(lesson,isConf){
   const tname=teacher?(teacher.short||teacher.name.split(' ').pop()):'';
   const rname=room?(room.short||room.name):'';
   const suppName=supp?(supp.short||supp.name.split(' ').pop()):'';
-  // znacznik withClass / rewa
   const s=getSpecialStudent(a.studentId);
   let tagHtml='';
   if(s&&s.type==='ni'){
-    tagHtml=a.withClass
-      ?'<span class="sp-card-tag sp-wc">z klasą</span>'
-      :'<span class="sp-card-tag sp-ind">indyw.</span>';
+    tagHtml=a.withClass?'<span class="sp-card-tag sp-wc">z klasą</span>':'<span class="sp-card-tag sp-ind">indyw.</span>';
   }else{
     tagHtml='<span class="sp-card-tag sp-rewa">rewa</span>';
   }
   div.innerHTML=
     `<div class="lc-subject" style="color:${color}">${esc(sname)}${tagHtml}</div>`+
-    (tname?`<div class="lc-teacher">${esc(tname)}</div>`:'')  +
-    (suppName?`<div class="lc-teacher" style="color:#7c3aed">🤝${esc(suppName)}</div>`:'')  +
-    (rname?`<div class="lc-room">${esc(rname)}</div>`:'')  +
+    (tname?`<div class="lc-teacher">${esc(tname)}</div>`:'')+
+    (suppName?`<div class="lc-teacher" style="color:#7c3aed">🤝${esc(suppName)}</div>`:'')+
+    (rname?`<div class="lc-room">${esc(rname)}</div>`:'')+
     '<button class="lc-remove" title="Usuń lekcję">✕</button>';
   div.querySelector('.lc-remove').addEventListener('click',e=>{
     e.stopPropagation();
     const p=lesson.key.split('|');
+    if(a.withClass&&a.hoursPerWeek>0){
+      a.hoursPerWeek=Math.max(0,a.hoursPerWeek-1);
+      if(a.hoursPerWeek===0)S.specialAssignments=S.specialAssignments.filter(x=>x.id!==a.id);
+    }
     setSpecialLesson(p[0],+p[1],+p[2],p[3],true);
+    saveState();
     renderSpecialTimetable(a.studentId);
     renderSpecialAssignmentsList(a.studentId);
     renderSpecialStudentList();
   });
   div.addEventListener('dragstart',e=>{
     specialDragData={fromKey:lesson.key,assignId:lesson.assignmentId,type:'special'};
-    div.classList.add('dragging');
-    e.dataTransfer.effectAllowed='move';
+    div.classList.add('dragging');e.dataTransfer.effectAllowed='move';
   });
   div.addEventListener('dragend',()=>div.classList.remove('dragging'));
   return div;
 }
 
-function openSpecialPicker(studentId,day,hour){
-  specialEnsureState();
-  const asgn=(S.specialAssignments||[]).filter(a=>a.studentId===studentId);
-  if(!asgn.length){notify('Najpierw dodaj przypisanie godzin dla tego ucznia','info');return;}
-  // policz już umieszczone
-  const pc={};
-  Object.values(S.specialLessons).forEach(l=>{pc[l.assignmentId]=(pc[l.assignmentId]||0)+1;});
-  // sprawdź co już jest w tym slocie
-  const alreadyIn=new Set(getSpecialLessonsAt(studentId,day,hour).map(l=>l.assignmentId));
-  const rows=asgn.map(a=>{
-    const subj=getSubject(a.subjectId),teacher=getTeacher(a.teacherId);
-    const p=pc[a.id]||0,n=a.hoursPerWeek||0;
-    const done=p>=n;
-    const inSlot=alreadyIn.has(a.id);
-    if(inSlot)return''; // już w tym slocie
-    return`<tr class="picker-row${done?' picker-done':''}" onclick="pickSpecialLesson('${studentId}',${day},${hour},'${a.id}')">
-      <td>${subj?esc(subj.name):'?'}</td>
-      <td>${teacher?esc(teacher.name):''}</td>
-      <td style="text-align:center;${done?'color:var(--green)':''}">${p}/${n}</td>
-    </tr>`;
-  }).join('');
-  openModal('Wybierz lekcję specjalną',
-    `<table class="picker-table"><thead><tr><th>Przedmiot</th><th>Nauczyciel</th><th>Godz.</th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="text-align:center;color:var(--text3)">Brak dostępnych przypisań</td></tr>'}</tbody></table>`,
-    null, false);
-}
+function openSpecialPicker(studentId,day,hour){openSpecialIndPicker(studentId,day,hour);}
 
 window.pickSpecialLesson=function(studentId,day,hour,assignId){
   setSpecialLesson(studentId,+day,+hour,assignId,false);
@@ -2667,26 +2787,7 @@ function injectSpecialIntoTimetable(){
   specialEnsureState();
   if(!S.specialLessons)return;
   const specConf=detectSpecialConflicts();
-  // Plan klasy — pokaż lekcje NI z klasą i wspomaganie
-  if(activeView==='class'&&activeClassId){
-    Object.entries(S.specialLessons).forEach(([k,l])=>{
-      const a=getSpecialAssign(l.assignmentId);if(!a)return;
-      const s=getSpecialStudent(a.studentId);if(!s)return;
-      const p=k.split('|');const[sid,d,h]=p;
-      // NI z klasą: uczeń należy do aktywnej klasy i lekcja jest withClass
-      const isNIwithClass=s.type==='ni'&&a.withClass&&s.classId===activeClassId;
-      // wspomaganie: nauczyciel wspomagający jest przypisany
-      const hasSupport=!!a.supportTeacherId;
-      if(!isNIwithClass&&!hasSupport)return;
-      // szukamy komórki tabeli
-      const wrap=document.getElementById('timetable-wrapper');
-      if(!wrap)return;
-      const cell=wrap.querySelector(`.cell[data-day="${d}"][data-hour="${h}"]`);
-      if(!cell)return;
-      const card=buildSpecialOverlayCard(a,s,k,specConf.has(k),isNIwithClass,hasSupport);
-      if(card){cell.classList.add('has-special');cell.appendChild(card);}
-    });
-  }
+  // Plan klasy — NIE pokazujemy overlay kart (uczeń NI widoczny tylko w module Specjalne)
   // Plan nauczyciela — pokaż jego lekcje specjalne
   if(activeView==='teacher'&&activeViewId){
     Object.entries(S.specialLessons).forEach(([k,l])=>{

@@ -690,7 +690,16 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 }
 
 /* Overlay karty w planie klasy/nauczyciela */
-.sp-overlay-card {
+.sp-tbl-legend{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:var(--r-md);font-size:11px;}
+.sp-leg{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:3px;font-weight:500;}
+.sp-leg-class{background:#f1f5f9;color:var(--text2);}
+.sp-leg-wc{background:#dbeafe;color:#1d4ed8;}
+.sp-leg-ind{background:#ede9fe;color:#5b21b6;}
+.sp-cell-class{background:var(--bg3)!important;}
+.sp-cell-empty{background:transparent;}
+.sp-cls-hint{font-size:9px;font-weight:400;color:var(--text3);margin-left:4px;font-style:italic;}
+.sp-class-preview{cursor:pointer;border-style:dashed!important;}
+.sp-class-preview:hover{opacity:1!important;background:rgba(0,0,0,0.04)!important;}
   font-size: 11px;
   cursor: pointer;
   flex-shrink: 0;
