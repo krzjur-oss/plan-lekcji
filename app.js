@@ -117,6 +117,27 @@ function detectConflicts(){
       if(seen['wc|'+classId+'|'+sl]){conf.add(k);conf.add(seen['wc|'+classId+'|'+sl]);}
     }
   }
+  // Cross-check: nauczyciele specjalni vs. główny plan
+  if(typeof S!=='undefined'&&S.specialLessons){
+    const mainSlots={};
+    Object.entries(S.lessons).forEach(([k,l])=>{
+      const a=getAssign(l.assignmentId);if(!a)return;
+      const p=k.split('|');const sl=p[1]+'|'+p[2];
+      [a.teacherId,a.roomId].filter(Boolean).forEach(id=>{
+        if(!mainSlots[id])mainSlots[id]=[];
+        mainSlots[id].push(sl);
+      });
+    });
+    Object.keys(S.specialLessons).forEach(k=>{
+      const l=S.specialLessons[k];
+      const a=typeof getSpecialAssign==='function'?getSpecialAssign(l.assignmentId):null;
+      if(!a)return;
+      const p=k.split('|');const sl=p[1]+'|'+p[2];
+      [a.teacherId,a.supportTeacherId,a.roomId].filter(Boolean).forEach(id=>{
+        if(mainSlots[id]&&mainSlots[id].includes(sl))conf.add(k);
+      });
+    });
+  }
   return conf;
 }
 function hexRgba(hex,a){
@@ -162,6 +183,7 @@ function renderTimetable(){
     }));
   }
   updateHeader(conf);renderPool();highlightSidebar();
+  injectSpecialIntoTimetable();
 }
 function buildTable(cellFn,viewId,viewType){
   const tbl=document.createElement('table');tbl.className='timetable';
@@ -371,6 +393,9 @@ function installPWA() {
 document.addEventListener('DOMContentLoaded',()=>{
   loadState();
   if(!S.schoolGroups)S.schoolGroups=[];
+  if(!S.specialStudents)S.specialStudents=[];
+  if(!S.specialAssignments)S.specialAssignments=[];
+  if(!S.specialLessons)S.specialLessons={};
   renderAll();renderHours();applySettings();
   requestAnimationFrame(()=>switchDataTab('classes'));
   if(S.classes.length)setActiveClass(S.classes[0].id);
@@ -451,6 +476,7 @@ function switchTab(tab){
     else if(tab==='stats')renderStats();
     else if(tab==='settings')applySettings();
     else if(tab==='plachta')renderPlachta();
+    else if(tab==='special'){specialEnsureState();renderSpecialModule();}
   });
 }
 const ADD_LABELS={classes:'+ Klasa',teachers:'+ Nauczyciel',rooms:'+ Sala',subjects:'+ Przedmiot',assignments:'+ Przypisanie',groups:'+ Grupa',hours:'+ Lekcja'};
@@ -1248,6 +1274,10 @@ function importJSON(text){
       S.classes=[];S.teachers=[];S.rooms=[];S.subjects=[];
       S.schoolGroups=[];S.assignments=[];S.lessons={};S.hours=JSON.parse(JSON.stringify(DEFAULT_HOURS));S.meta={schoolName:'',year:'2024/2025'};
       Object.assign(S,d);
+      // Uzupełnij pola modułu Specjalne jeśli brak w starszym pliku
+      if(!S.specialStudents)S.specialStudents=[];
+      if(!S.specialAssignments)S.specialAssignments=[];
+      if(!S.specialLessons)S.specialLessons={};
       saveState();return{ok:true,msg:'Dane zaimportowane pomyślnie'};
     }
     return{ok:false,error:'Nierozpoznany format pliku'};
@@ -2272,3 +2302,529 @@ function notify(msg,type='info'){
   document.body.appendChild(el);
   setTimeout(()=>{el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(()=>el.remove(),350);},2500);
 }
+
+// ═══════════════════════════════════════════════════════════
+// MODUŁ SPECJALNE — NI / Rewalidacja / Wspomaganie
+// ═══════════════════════════════════════════════════════════
+
+// ── Inicjalizacja pól stanu ──────────────────────────────
+function specialEnsureState(){
+  if(!S.specialStudents)S.specialStudents=[];
+  if(!S.specialAssignments)S.specialAssignments=[];
+  if(!S.specialLessons)S.specialLessons={};
+}
+
+// ── Pomocniki ─────────────────────────────────────────────
+function getSpecialStudent(id){return(S.specialStudents||[]).find(s=>s.id===id)||null;}
+function getSpecialAssign(id){return(S.specialAssignments||[]).find(a=>a.id===id)||null;}
+
+const SPECIAL_TYPES={
+  ni:  {label:'NI',        long:'Nauczanie indywidualne', color:'#7c3aed'},
+  rewa:{label:'Rewa',      long:'Rewalidacja',            color:'#0891b2'},
+};
+
+function specialTypeLabel(type){
+  return SPECIAL_TYPES[type]||{label:type,long:type,color:'#94a3b8'};
+}
+
+// klucz lekcji specjalnej: studentId|day|hour|assignmentId
+function slkey(sid,d,h,aid){return sid+'|'+d+'|'+h+'|'+aid;}
+
+function getSpecialLessonsAt(studentId,d,h){
+  specialEnsureState();
+  return Object.entries(S.specialLessons)
+    .filter(([k])=>{const p=k.split('|');return p[0]===studentId&&+p[1]===d&&+p[2]===h;})
+    .map(([k,v])=>({key:k,...v}));
+}
+
+function setSpecialLesson(sid,d,h,aid,remove){
+  specialEnsureState();
+  const k=slkey(sid,d,h,aid);
+  if(remove)delete S.specialLessons[k];
+  else S.specialLessons[k]={assignmentId:aid};
+  saveState();
+}
+
+// ── Widok: renderSpecialModule ────────────────────────────
+window._specialActiveStudentId=null;
+
+function renderSpecialModule(){
+  specialEnsureState();
+  renderSpecialStudentList();
+  if(window._specialActiveStudentId){
+    openSpecialDetail(window._specialActiveStudentId);
+  }
+}
+
+function renderSpecialStudentList(){
+  specialEnsureState();
+  const el=document.getElementById('special-students-list');
+  if(!el)return;
+  if(!S.specialStudents.length){
+    el.innerHTML='<div class="special-empty"><div style="font-size:32px;margin-bottom:8px">🎓</div><div>Brak uczniów. Kliknij <strong>+ Dodaj ucznia</strong> aby rozpocząć.</div></div>';
+    return;
+  }
+  const sorted=[...S.specialStudents].sort((a,b)=>(a.lastName+a.firstName).localeCompare(b.lastName+b.firstName,'pl'));
+  el.innerHTML='<div class="special-students-grid">'+sorted.map(s=>{
+    const cls=s.classId?getClass(s.classId):null;
+    const t=specialTypeLabel(s.type);
+    const asgn=(S.specialAssignments||[]).filter(a=>a.studentId===s.id);
+    const totalH=asgn.reduce((sum,a)=>sum+(a.hoursPerWeek||0),0);
+    const placed=Object.values(S.specialLessons||{}).filter(l=>{
+      const a=getSpecialAssign(l.assignmentId);return a&&a.studentId===s.id;
+    }).length;
+    const active=window._specialActiveStudentId===s.id;
+    return`<div class="special-student-card${active?' active':''}" onclick="openSpecialDetail('${s.id}')">
+      <div class="ssc-top">
+        <span class="special-type-badge" style="background:${t.color}">${t.label}</span>
+        <div class="ssc-actions">
+          <button title="Edytuj" onclick="event.stopPropagation();modalSpecialStudent('${s.id}')">✏️</button>
+          <button title="Usuń" onclick="event.stopPropagation();deleteSpecialStudent('${s.id}')">🗑</button>
+        </div>
+      </div>
+      <div class="ssc-name">${esc(s.lastName)} ${esc(s.firstName)}</div>
+      ${cls?`<div class="ssc-class">Klasa: <strong>${esc(cls.name)}</strong></div>`:'<div class="ssc-class" style="color:var(--text3)">Bez klasy</div>'}
+      <div class="ssc-hours">${placed}/${totalH} godz. umieszczonych</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+function openSpecialDetail(studentId){
+  window._specialActiveStudentId=studentId;
+  const detEl=document.getElementById('special-student-detail');
+  if(!detEl)return;
+  detEl.style.display='';
+  const s=getSpecialStudent(studentId);
+  if(!s)return;
+  renderSpecialStudentList(); // odśwież active state
+  const t=specialTypeLabel(s.type);
+  const cls=s.classId?getClass(s.classId):null;
+  document.getElementById('ssd-badge').textContent=t.long;
+  document.getElementById('ssd-badge').style.background=t.color;
+  document.getElementById('ssd-name').textContent=s.lastName+' '+s.firstName;
+  document.getElementById('ssd-class').textContent=cls?'(klasa '+cls.name+')':'(bez klasy)';
+  renderSpecialAssignmentsList(studentId);
+  renderSpecialTimetable(studentId);
+}
+
+function closeSpecialDetail(){
+  window._specialActiveStudentId=null;
+  const detEl=document.getElementById('special-student-detail');
+  if(detEl)detEl.style.display='none';
+  renderSpecialStudentList();
+}
+
+function renderSpecialAssignmentsList(studentId){
+  specialEnsureState();
+  const el=document.getElementById('ssd-assignments');
+  if(!el)return;
+  const asgn=(S.specialAssignments||[]).filter(a=>a.studentId===studentId);
+  if(!asgn.length){
+    el.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0">Brak przypisań. Kliknij <strong>+ Dodaj godziny</strong>.</div>';
+    return;
+  }
+  const pc={};
+  Object.values(S.specialLessons||{}).forEach(l=>{pc[l.assignmentId]=(pc[l.assignmentId]||0)+1;});
+  const s=getSpecialStudent(studentId);
+  el.innerHTML='<div class="special-asgn-list">'+asgn.map(a=>{
+    const subj=getSubject(a.subjectId),teacher=getTeacher(a.teacherId),room=getRoom(a.roomId);
+    const supp=a.supportTeacherId?getTeacher(a.supportTeacherId):null;
+    const placed=pc[a.id]||0;
+    const done=placed>=a.hoursPerWeek;
+    const wcTag=s&&s.type==='ni'?(a.withClass
+      ?'<span class="sa-tag sa-tag-wc">z klasą</span>'
+      :'<span class="sa-tag sa-tag-ind">indywidualnie</span>')
+      :'<span class="sa-tag sa-tag-rewa">poza klasą</span>';
+    return`<div class="special-asgn-item${done?' done':''}">
+      <div class="sa-subject">${subj?esc(subj.name):'?'}${wcTag}</div>
+      <div class="sa-meta">
+        ${teacher?`<span>👤 ${esc(teacher.name)}</span>`:''}
+        ${supp?`<span>🤝 ${esc(supp.name)} <em style="font-size:10px;color:var(--text3)">(wspomagający)</em></span>`:''}
+        ${room?`<span>🚪 ${esc(room.name)}</span>`:''}
+      </div>
+      <div class="sa-progress">
+        <span class="${done?'sa-done':'sa-todo'}">${placed}/${a.hoursPerWeek} godz.</span>
+      </div>
+      <div class="sa-actions">
+        <button class="btn btn-ghost btn-sm" onclick="modalSpecialAssignment('${a.id}')">Edytuj</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSpecialAssignment('${a.id}')">Usuń</button>
+      </div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ── Plan tygodniowy ucznia ────────────────────────────────
+let specialDragData=null;
+
+function renderSpecialTimetable(studentId){
+  const wrap=document.getElementById('ssd-timetable');
+  if(!wrap)return;
+  const s=getSpecialStudent(studentId);
+  if(!s){wrap.innerHTML='';return;}
+  // Sprawdź konflikty nauczycieli w planie specjalnym
+  const specConf=detectSpecialConflicts();
+  const tbl=document.createElement('table');
+  tbl.className='timetable special-timetable';
+  const thead=tbl.createTHead(),hr=thead.insertRow();
+  hr.innerHTML='<th>Godz.</th>'+DAYS.map(d=>`<th>${d}</th>`).join('');
+  const tbody=tbl.createTBody();
+  S.hours.forEach((h,hi)=>{
+    const tr=tbody.insertRow();
+    tr.innerHTML=`<td class="hour-col"><span class="hour-num">${h.num}</span><span class="hour-time">${h.start}–${h.end}</span></td>`;
+    DAYS.forEach((_,di)=>{
+      const td=tr.insertCell();td.className='cell';
+      td.dataset.day=di;td.dataset.hour=hi;td.dataset.studentId=studentId;
+      const lessons=getSpecialLessonsAt(studentId,di,hi);
+      if(lessons.length){
+        lessons.forEach(l=>{
+          const card=buildSpecialCard(l,specConf.has(l.key));
+          if(card)td.appendChild(card);
+        });
+      }
+      // klik w pustą komórkę — picker lekcji specjalnej
+      td.addEventListener('click',e=>{
+        if(e.target.closest('.sp-card'))return;
+        openSpecialPicker(studentId,di,hi);
+      });
+      // drag & drop
+      td.addEventListener('dragover',e=>{e.preventDefault();td.classList.add('drag-over');});
+      td.addEventListener('dragleave',()=>td.classList.remove('drag-over'));
+      td.addEventListener('drop',e=>{
+        e.preventDefault();td.classList.remove('drag-over');
+        if(!specialDragData)return;
+        const{fromKey,assignId}=specialDragData;
+        // usuń ze starego miejsca
+        if(fromKey){
+          const fp=fromKey.split('|');
+          setSpecialLesson(fp[0],+fp[1],+fp[2],fp[3],true);
+        }
+        setSpecialLesson(studentId,di,hi,assignId,false);
+        renderSpecialTimetable(studentId);
+        renderSpecialStudentList();
+      });
+    });
+  });
+  wrap.innerHTML='';wrap.appendChild(tbl);
+}
+
+function buildSpecialCard(lesson,isConf){
+  const a=getSpecialAssign(lesson.assignmentId);
+  if(!a)return null;
+  const subj=getSubject(a.subjectId),teacher=getTeacher(a.teacherId),room=getRoom(a.roomId);
+  const supp=a.supportTeacherId?getTeacher(a.supportTeacherId):null;
+  const color=subj&&subj.color?subj.color:'#0891b2';
+  const div=document.createElement('div');
+  div.className='lesson-card sp-card'+(isConf?' conflict':'');
+  div.draggable=true;
+  div.dataset.key=lesson.key;
+  div.style.borderLeftColor=color;
+  div.style.background=hexRgba(color,0.1);
+  const sname=subj?(subj.short||subj.name):'?';
+  const tname=teacher?(teacher.short||teacher.name.split(' ').pop()):'';
+  const rname=room?(room.short||room.name):'';
+  const suppName=supp?(supp.short||supp.name.split(' ').pop()):'';
+  // znacznik withClass / rewa
+  const s=getSpecialStudent(a.studentId);
+  let tagHtml='';
+  if(s&&s.type==='ni'){
+    tagHtml=a.withClass
+      ?'<span class="sp-card-tag sp-wc">z klasą</span>'
+      :'<span class="sp-card-tag sp-ind">indyw.</span>';
+  }else{
+    tagHtml='<span class="sp-card-tag sp-rewa">rewa</span>';
+  }
+  div.innerHTML=
+    `<div class="lc-subject" style="color:${color}">${esc(sname)}${tagHtml}</div>`+
+    (tname?`<div class="lc-teacher">${esc(tname)}</div>`:'')  +
+    (suppName?`<div class="lc-teacher" style="color:#7c3aed">🤝${esc(suppName)}</div>`:'')  +
+    (rname?`<div class="lc-room">${esc(rname)}</div>`:'')  +
+    '<button class="lc-remove" title="Usuń lekcję">✕</button>';
+  div.querySelector('.lc-remove').addEventListener('click',e=>{
+    e.stopPropagation();
+    const p=lesson.key.split('|');
+    setSpecialLesson(p[0],+p[1],+p[2],p[3],true);
+    renderSpecialTimetable(a.studentId);
+    renderSpecialAssignmentsList(a.studentId);
+    renderSpecialStudentList();
+  });
+  div.addEventListener('dragstart',e=>{
+    specialDragData={fromKey:lesson.key,assignId:lesson.assignmentId,type:'special'};
+    div.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';
+  });
+  div.addEventListener('dragend',()=>div.classList.remove('dragging'));
+  return div;
+}
+
+function openSpecialPicker(studentId,day,hour){
+  specialEnsureState();
+  const asgn=(S.specialAssignments||[]).filter(a=>a.studentId===studentId);
+  if(!asgn.length){notify('Najpierw dodaj przypisanie godzin dla tego ucznia','info');return;}
+  // policz już umieszczone
+  const pc={};
+  Object.values(S.specialLessons).forEach(l=>{pc[l.assignmentId]=(pc[l.assignmentId]||0)+1;});
+  // sprawdź co już jest w tym slocie
+  const alreadyIn=new Set(getSpecialLessonsAt(studentId,day,hour).map(l=>l.assignmentId));
+  const rows=asgn.map(a=>{
+    const subj=getSubject(a.subjectId),teacher=getTeacher(a.teacherId);
+    const p=pc[a.id]||0,n=a.hoursPerWeek||0;
+    const done=p>=n;
+    const inSlot=alreadyIn.has(a.id);
+    if(inSlot)return''; // już w tym slocie
+    return`<tr class="picker-row${done?' picker-done':''}" onclick="pickSpecialLesson('${studentId}',${day},${hour},'${a.id}')">
+      <td>${subj?esc(subj.name):'?'}</td>
+      <td>${teacher?esc(teacher.name):''}</td>
+      <td style="text-align:center;${done?'color:var(--green)':''}">${p}/${n}</td>
+    </tr>`;
+  }).join('');
+  openModal('Wybierz lekcję specjalną',
+    `<table class="picker-table"><thead><tr><th>Przedmiot</th><th>Nauczyciel</th><th>Godz.</th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="text-align:center;color:var(--text3)">Brak dostępnych przypisań</td></tr>'}</tbody></table>`,
+    null, false);
+}
+
+window.pickSpecialLesson=function(studentId,day,hour,assignId){
+  setSpecialLesson(studentId,+day,+hour,assignId,false);
+  closeModal();
+  renderSpecialTimetable(studentId);
+  renderSpecialAssignmentsList(studentId);
+  renderSpecialStudentList();
+};
+
+// ── Detekcja konfliktów specjalnych ──────────────────────
+function detectSpecialConflicts(){
+  specialEnsureState();
+  const seen={},conf=new Set();
+  // Konflikty z głównym planem i między sobą
+  Object.entries(S.specialLessons).forEach(([k,l])=>{
+    const a=getSpecialAssign(l.assignmentId);if(!a)return;
+    const p=k.split('|');const sl=p[1]+'|'+p[2];
+    if(a.teacherId){
+      const tk='t|'+a.teacherId+'|'+sl;
+      if(seen[tk]){conf.add(k);conf.add(seen[tk]);}
+      seen[tk]=k;
+    }
+    if(a.supportTeacherId){
+      const stk='t|'+a.supportTeacherId+'|'+sl;
+      if(seen[stk]){conf.add(k);conf.add(seen[stk]);}
+      seen[stk]=k;
+    }
+    if(a.roomId){
+      const rk='r|'+a.roomId+'|'+sl;
+      if(seen[rk]){conf.add(k);conf.add(seen[rk]);}
+      seen[rk]=k;
+    }
+  });
+  return conf;
+}
+
+// detectConflicts cross-check handled inside detectSpecialConflicts()
+
+// renderTimetable integration: injectSpecialIntoTimetable called at end of original renderTimetable
+
+function injectSpecialIntoTimetable(){
+  specialEnsureState();
+  if(!S.specialLessons)return;
+  const specConf=detectSpecialConflicts();
+  // Plan klasy — pokaż lekcje NI z klasą i wspomaganie
+  if(activeView==='class'&&activeClassId){
+    Object.entries(S.specialLessons).forEach(([k,l])=>{
+      const a=getSpecialAssign(l.assignmentId);if(!a)return;
+      const s=getSpecialStudent(a.studentId);if(!s)return;
+      const p=k.split('|');const[sid,d,h]=p;
+      // NI z klasą: uczeń należy do aktywnej klasy i lekcja jest withClass
+      const isNIwithClass=s.type==='ni'&&a.withClass&&s.classId===activeClassId;
+      // wspomaganie: nauczyciel wspomagający jest przypisany
+      const hasSupport=!!a.supportTeacherId;
+      if(!isNIwithClass&&!hasSupport)return;
+      // szukamy komórki tabeli
+      const wrap=document.getElementById('timetable-wrapper');
+      if(!wrap)return;
+      const cell=wrap.querySelector(`.cell[data-day="${d}"][data-hour="${h}"]`);
+      if(!cell)return;
+      const card=buildSpecialOverlayCard(a,s,k,specConf.has(k),isNIwithClass,hasSupport);
+      if(card)cell.appendChild(card);
+    });
+  }
+  // Plan nauczyciela — pokaż jego lekcje specjalne
+  if(activeView==='teacher'&&activeViewId){
+    Object.entries(S.specialLessons).forEach(([k,l])=>{
+      const a=getSpecialAssign(l.assignmentId);if(!a)return;
+      if(a.teacherId!==activeViewId&&a.supportTeacherId!==activeViewId)return;
+      const s=getSpecialStudent(a.studentId);if(!s)return;
+      const p=k.split('|');const[,d,h]=p;
+      const wrap=document.getElementById('timetable-wrapper');
+      if(!wrap)return;
+      const cell=wrap.querySelector(`.cell[data-day="${d}"][data-hour="${h}"]`);
+      if(!cell)return;
+      const isSupport=a.supportTeacherId===activeViewId;
+      const card=buildSpecialOverlayCard(a,s,k,specConf.has(k),false,isSupport);
+      if(card)cell.appendChild(card);
+    });
+  }
+}
+
+function buildSpecialOverlayCard(a,student,key,isConf,isWithClass,isSupport){
+  const subj=getSubject(a.subjectId),room=getRoom(a.roomId);
+  const t=specialTypeLabel(student.type);
+  const color=t.color;
+  const div=document.createElement('div');
+  div.className='lesson-card sp-overlay-card'+(isConf?' conflict':'');
+  div.style.borderLeftColor=color;
+  div.style.background=hexRgba(color,0.08);
+  div.style.borderLeft=`3px solid ${color}`;
+  div.style.opacity='0.88';
+  const sname=subj?(subj.short||subj.name):'?';
+  const studentName=student.lastName+' '+student.firstName[0]+'.';
+  let tagHtml='';
+  if(isSupport){tagHtml='<span class="sp-card-tag sp-supp">wspomaganie</span>';}
+  else if(isWithClass){tagHtml='<span class="sp-card-tag sp-wc">NI z klasą</span>';}
+  div.innerHTML=
+    `<div class="lc-subject" style="color:${color}">${esc(sname)}${tagHtml}</div>`+
+    `<div class="lc-teacher" style="color:${color};opacity:.8">${esc(studentName)}</div>`+
+    (room?`<div class="lc-room">${esc(room.short||room.name)}</div>`:'');
+  // klik otwiera szczegóły ucznia w module Specjalne
+  div.addEventListener('click',e=>{
+    e.stopPropagation();
+    switchTab('special');
+    requestAnimationFrame(()=>openSpecialDetail(student.id));
+  });
+  return div;
+}
+
+// ── CRUD: Uczeń ──────────────────────────────────────────
+function modalSpecialStudent(id){
+  specialEnsureState();
+  const s=id?getSpecialStudent(id):null;
+  const classOpts=alphaSort(S.classes,'name').map(c=>`<option value="${c.id}" ${s&&s.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+  openModal(id?'Edytuj ucznia':'Dodaj ucznia',`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Imię *</label><input id="ss-first" class="form-input" placeholder="Jan" value="${esc(s?s.firstName:'')}"></div>
+      <div class="form-group"><label class="form-label">Nazwisko *</label><input id="ss-last" class="form-input" placeholder="Kowalski" value="${esc(s?s.lastName:'')}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Typ *</label>
+      <select id="ss-type" class="form-select">
+        <option value="ni"  ${!s||s.type==='ni' ?'selected':''}>Nauczanie indywidualne (NI)</option>
+        <option value="rewa"${s&&s.type==='rewa'?'selected':''}>Rewalidacja</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Klasa (opcjonalnie)</label>
+      <select id="ss-cls" class="form-select"><option value="">— brak klasy —</option>${classOpts}</select>
+    </div>
+    <div class="form-group"><label class="form-label">Uwagi</label>
+      <input id="ss-note" class="form-input" placeholder="np. orzeczenie nr …" value="${esc(s&&s.note?s.note:[].join(''))}">
+    </div>`,
+  ()=>{
+    const first=document.getElementById('ss-first').value.trim();
+    const last=document.getElementById('ss-last').value.trim();
+    if(!first||!last){notify('Podaj imię i nazwisko','error');return;}
+    const data={
+      firstName:first,lastName:last,
+      type:document.getElementById('ss-type').value,
+      classId:document.getElementById('ss-cls').value||null,
+      note:document.getElementById('ss-note').value.trim(),
+    };
+    if(id){Object.assign(getSpecialStudent(id),data);}
+    else{S.specialStudents.push({id:uid(),...data});}
+    saveState();closeModal();renderSpecialModule();
+    notify(id?'Uczeń zaktualizowany':'Uczeń dodany','success');
+  });
+}
+
+function deleteSpecialStudent(id){
+  specialEnsureState();
+  if(!confirm('Usunąć ucznia wraz z wszystkimi jego przypisaniami i lekcjami?'))return;
+  const aIds=new Set((S.specialAssignments||[]).filter(a=>a.studentId===id).map(a=>a.id));
+  S.specialStudents=S.specialStudents.filter(s=>s.id!==id);
+  S.specialAssignments=(S.specialAssignments||[]).filter(a=>a.studentId!==id);
+  for(const k of Object.keys(S.specialLessons)){
+    if(aIds.has(S.specialLessons[k].assignmentId))delete S.specialLessons[k];
+  }
+  if(window._specialActiveStudentId===id){window._specialActiveStudentId=null;closeSpecialDetail();}
+  saveState();renderSpecialModule();
+  notify('Uczeń usunięty','success');
+}
+
+// ── CRUD: Przypisanie godzin ──────────────────────────────
+function modalSpecialAssignment(id){
+  specialEnsureState();
+  const a=id?getSpecialAssign(id):null;
+  const studentId=a?a.studentId:window._specialActiveStudentId;
+  const s=studentId?getSpecialStudent(studentId):null;
+  if(!s){notify('Najpierw wybierz ucznia','error');return;}
+  const isNI=s.type==='ni';
+  const subjOpts=alphaSort(S.subjects,'name').map(su=>`<option value="${su.id}" ${a&&a.subjectId===su.id?'selected':''}>${esc(su.name)}</option>`).join('');
+  const teachOpts='<option value="">— brak —</option>'+alphaSort(S.teachers,'name').map(t=>`<option value="${t.id}" ${a&&a.teacherId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
+  const suppOpts='<option value="">— brak —</option>'+alphaSort(S.teachers,'name').map(t=>`<option value="${t.id}" ${a&&a.supportTeacherId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
+  const roomOpts='<option value="">— brak —</option>'+alphaSort(S.rooms,'name').map(r=>`<option value="${r.id}" ${a&&a.roomId===r.id?'selected':''}>${esc(r.name)}</option>`).join('');
+  const withClassChecked=a?a.withClass:false;
+  openModal(id?'Edytuj przypisanie':'Dodaj godziny',`
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Uczeń: <strong>${esc(s.lastName+' '+s.firstName)}</strong> · ${specialTypeLabel(s.type).long}</div>
+    <div class="form-group"><label class="form-label">Przedmiot *</label>
+      <select id="sa-subj" class="form-select"><option value="">— wybierz —</option>${subjOpts}</select>
+    </div>
+    <div class="form-group"><label class="form-label">Nauczyciel (prowadzący)</label>
+      <select id="sa-teach" class="form-select">${teachOpts}</select>
+    </div>
+    ${isNI?`<div class="form-group"><label class="form-label">Nauczyciel wspomagający</label>
+      <select id="sa-supp" class="form-select">${suppOpts}</select>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Jeśli wskazany, pojawi się automatycznie w planie klasy i na jego planie nauczyciela.</div>
+    </div>`:'<input type="hidden" id="sa-supp" value="">'}
+    <div class="form-group"><label class="form-label">Sala</label>
+      <select id="sa-room" class="form-select">${roomOpts}</select>
+    </div>
+    <div class="form-group"><label class="form-label">Godzin / tydzień *</label>
+      <input id="sa-hrs" class="form-input" type="number" min="1" max="20" value="${a?a.hoursPerWeek||2:2}">
+    </div>
+    ${isNI?`<div class="form-group">
+      <label class="form-checkbox" style="align-items:center;gap:8px;display:flex">
+        <input type="checkbox" id="sa-wc" ${withClassChecked?'checked':''}>
+        <span><strong>Lekcja z klasą</strong> — uczeń uczestniczy razem z klasą (pojawi się w planie klasy)</span>
+      </label>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Odznaczone = nauczanie indywidualne poza klasą</div>
+    </div>`:'<input type="hidden" id="sa-wc" value="">'}`,
+  ()=>{
+    const subjectId=document.getElementById('sa-subj').value;
+    if(!subjectId){notify('Wybierz przedmiot','error');return;}
+    const wcEl=document.getElementById('sa-wc');
+    const withClass=isNI&&wcEl?(wcEl.type==='checkbox'?wcEl.checked:false):false;
+    const suppEl=document.getElementById('sa-supp');
+    const supportTeacherId=(suppEl&&suppEl.value)||null;
+    const data={
+      studentId,subjectId,
+      teacherId:document.getElementById('sa-teach').value||null,
+      supportTeacherId,
+      roomId:document.getElementById('sa-room').value||null,
+      hoursPerWeek:+document.getElementById('sa-hrs').value||1,
+      withClass,
+    };
+    if(id){Object.assign(getSpecialAssign(id),data);}
+    else{if(!S.specialAssignments)S.specialAssignments=[];S.specialAssignments.push({id:uid(),...data});}
+    saveState();closeModal();
+    renderSpecialAssignmentsList(studentId);
+    renderSpecialTimetable(studentId);
+    renderSpecialStudentList();
+    renderTimetable(); // odśwież plan główny (wspomaganie)
+    notify(id?'Przypisanie zaktualizowane':'Godziny dodane','success');
+  });
+}
+
+function deleteSpecialAssignment(id){
+  specialEnsureState();
+  const a=getSpecialAssign(id);if(!a)return;
+  if(!confirm('Usunąć to przypisanie i wszystkie jego lekcje?'))return;
+  const sid=a.studentId;
+  S.specialAssignments=S.specialAssignments.filter(x=>x.id!==id);
+  for(const k of Object.keys(S.specialLessons)){
+    if(S.specialLessons[k].assignmentId===id)delete S.specialLessons[k];
+  }
+  saveState();
+  renderSpecialAssignmentsList(sid);
+  renderSpecialTimetable(sid);
+  renderSpecialStudentList();
+  renderTimetable();
+  notify('Przypisanie usunięte','success');
+}
+
+// importJSON integration: handled inside original importJSON via specialEnsureState calls
+
+// switchTab integration: handled inside original switchTab
