@@ -244,6 +244,8 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
     grid-template-rows: 48px 1fr;
   }
   #sidebar-right { display: none; }
+  .top-actions .btn-label { display: none; }
+  .top-actions .btn { padding: 4px 8px; }
 }
 @media (max-width: 600px) {
   #app {
