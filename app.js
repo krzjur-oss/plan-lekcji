@@ -2395,12 +2395,22 @@ function debugSpecialData(){
   const slotMap={};
   lessons.forEach(([k])=>{const p=k.split('|');const slot=p[0]+'|'+p[1]+'|'+p[2];slotMap[slot]=(slotMap[slot]||0)+1;});
   const dups=Object.entries(slotMap).filter(([,c])=>c>1);
+
+  // Pokaż wszystkie klucze dla podejrzanych slotów (gdzie nauczyciel wspomagający)
+  const suspiciousKeys=[];
+  lessons.forEach(([k,l])=>{
+    const a=getSpecialAssign(l.assignmentId);if(!a)return;
+    const p=k.split('|');
+    suspiciousKeys.push(`key="${k}" parts=${p.length} slot="${p[0].slice(-4)}|${p[1]}|${p[2]}" aid="${(a.id||'').slice(-4)}" withClass=${a.withClass}`);
+  });
+
   const msg=
     `Uczniowie specjalni: ${(S.specialStudents||[]).length}\n`+
     `Przypisania: ${(S.specialAssignments||[]).length} (withClass: ${(S.specialAssignments||[]).filter(a=>a.withClass).length})\n`+
     `Lekcje specjalne: ${lessons.length}\n`+
     `Duplikaty slotów (ten sam uczeń+godz): ${dups.length}\n`+
     (dups.length?'\nDuplikaty:\n'+dups.map(([s,c])=>s+' x'+c).join('\n'):'')+
+    '\n\nRaw keys (ostatnie 4 znaki ID):\n'+suspiciousKeys.slice(0,30).join('\n')+
     '\n\nKliknij OK aby automatycznie wyczyścić duplikaty.';
   if(confirm(msg)){
     const n=cleanupSpecialDuplicates();
