@@ -2935,22 +2935,28 @@ function injectSpecialIntoTimetable(){
   specialEnsureState();
   if(!S.specialLessons)return;
   const specConf=detectSpecialConflicts();
-  // Plan nauczyciela — pokaż jego lekcje specjalne, max jedna karta per (uczeń, slot)
+  // Plan nauczyciela — pokaż tylko lekcje gdzie nauczyciel jest WSPOMAGAJĄCYM
+  // Lekcje gdzie jest prowadzącym (teacherId) są już widoczne w głównym planie klasy
   if(activeView==='teacher'&&activeViewId){
-    const shown=new Set(); // klucz: studentId|day|hour — żeby nie duplikować
+    const shown=new Set(); // klucz: studentId|day|hour
     Object.entries(S.specialLessons).forEach(([k,l])=>{
       const a=getSpecialAssign(l.assignmentId);if(!a)return;
-      if(a.teacherId!==activeViewId&&a.supportTeacherId!==activeViewId)return;
+      // Pokaż tylko jeśli nauczyciel jest wspomagającym
+      // LUB jeśli jest prowadzącym lekcji INDYWIDUALNEJ (nie withClass - bo withClass widać w planie klasy)
+      const isSupport=a.supportTeacherId===activeViewId;
+      const isMainTeacher=a.teacherId===activeViewId;
+      if(!isSupport&&!isMainTeacher)return;
+      // Pomiń lekcje "z klasą" gdzie nauczyciel jest tylko prowadzącym (widoczne w planie klasy)
+      if(a.withClass&&isMainTeacher&&!isSupport)return;
       const s=getSpecialStudent(a.studentId);if(!s)return;
       const p=k.split('|');const[sid,d,h]=p;
       const slotKey=sid+'|'+d+'|'+h;
-      if(shown.has(slotKey))return; // już wyświetlono kartę dla tego ucznia w tym slocie
+      if(shown.has(slotKey))return;
       shown.add(slotKey);
       const wrap=document.getElementById('timetable-wrapper');
       if(!wrap)return;
       const cell=wrap.querySelector(`.cell[data-day="${d}"][data-hour="${h}"]`);
       if(!cell)return;
-      const isSupport=a.supportTeacherId===activeViewId;
       const card=buildSpecialOverlayCard(a,s,k,specConf.has(k),false,isSupport);
       if(card){cell.classList.add('has-special');cell.appendChild(card);}
     });
