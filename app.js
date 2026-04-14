@@ -2709,10 +2709,16 @@ function buildClassPreviewCard(classLesson,student,day,hour){
 
 function openSpecialWithClassPicker(student,day,hour,classAssign){
   const subj=getSubject(classAssign.subjectId);
+  // Sprawdź czy ten slot jest już oznaczony "z klasą" — znajdź istniejące przypisanie
+  const existingLesson=getSpecialLessonsAt(student.id,day,hour)
+    .map(l=>({l,a:getSpecialAssign(l.assignmentId)}))
+    .find(({a})=>a&&a.withClass&&a.subjectId===classAssign.subjectId);
+  const existingAssign=existingLesson?existingLesson.a:null;
+
   const suppOpts='<option value="">— brak nauczyciela wspomagającego —</option>'+
-    alphaSort(S.teachers,'name').map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+    alphaSort(S.teachers,'name').map(t=>`<option value="${t.id}" ${existingAssign&&existingAssign.supportTeacherId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
   const roomOpts='<option value="">— ta sama sala co klasa —</option>'+
-    alphaSort(S.rooms,'name').map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
+    alphaSort(S.rooms,'name').map(r=>`<option value="${r.id}" ${existingAssign&&existingAssign.roomId===r.id?'selected':''}>${esc(r.name)}</option>`).join('');
   openModal(`Lekcja z klasą — ${subj?esc(subj.name):'?'}`,`
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
       Uczeń <strong>${esc(student.lastName+' '+student.firstName)}</strong> będzie na tej lekcji z klasą.
@@ -2726,19 +2732,24 @@ function openSpecialWithClassPicker(student,day,hour,classAssign){
   ()=>{
     const suppId=document.getElementById('swc-supp').value||null;
     const roomId=document.getElementById('swc-room').value||null;
-    let asgn=(S.specialAssignments||[]).find(a=>
-      a.studentId===student.id&&a.subjectId===classAssign.subjectId&&a.withClass);
-    if(!asgn){
-      asgn={id:uid(),studentId:student.id,subjectId:classAssign.subjectId,
-        teacherId:classAssign.teacherId,supportTeacherId:suppId,
-        roomId:roomId||classAssign.roomId,hoursPerWeek:0,withClass:true};
-      S.specialAssignments.push(asgn);
+    specialEnsureState();
+
+    if(existingAssign){
+      // Aktualizuj istniejące przypisanie dla tego slotu
+      existingAssign.supportTeacherId=suppId;
+      if(roomId)existingAssign.roomId=roomId;
+      // Klucz lekcji już istnieje — nie trzeba go ponownie ustawiać
     } else {
-      asgn.supportTeacherId=suppId;
-      if(roomId)asgn.roomId=roomId;
+      // Utwórz nowe przypisanie specyficzne dla tego slotu
+      // (jedno przypisanie per slot, nie współdzielone między slotami)
+      const asgn={
+        id:uid(),studentId:student.id,subjectId:classAssign.subjectId,
+        teacherId:classAssign.teacherId,supportTeacherId:suppId,
+        roomId:roomId||classAssign.roomId,hoursPerWeek:1,withClass:true
+      };
+      S.specialAssignments.push(asgn);
+      setSpecialLesson(student.id,day,hour,asgn.id,false);
     }
-    asgn.hoursPerWeek=(asgn.hoursPerWeek||0)+1;
-    setSpecialLesson(student.id,day,hour,asgn.id,false);
     saveState();closeModal();
     renderSpecialTimetable(student.id);
     renderSpecialAssignmentsList(student.id);
@@ -2870,14 +2881,17 @@ function injectSpecialIntoTimetable(){
   specialEnsureState();
   if(!S.specialLessons)return;
   const specConf=detectSpecialConflicts();
-  // Plan klasy — NIE pokazujemy overlay kart (uczeń NI widoczny tylko w module Specjalne)
-  // Plan nauczyciela — pokaż jego lekcje specjalne
+  // Plan nauczyciela — pokaż jego lekcje specjalne, max jedna karta per (uczeń, slot)
   if(activeView==='teacher'&&activeViewId){
+    const shown=new Set(); // klucz: studentId|day|hour — żeby nie duplikować
     Object.entries(S.specialLessons).forEach(([k,l])=>{
       const a=getSpecialAssign(l.assignmentId);if(!a)return;
       if(a.teacherId!==activeViewId&&a.supportTeacherId!==activeViewId)return;
       const s=getSpecialStudent(a.studentId);if(!s)return;
-      const p=k.split('|');const[,d,h]=p;
+      const p=k.split('|');const[sid,d,h]=p;
+      const slotKey=sid+'|'+d+'|'+h;
+      if(shown.has(slotKey))return; // już wyświetlono kartę dla tego ucznia w tym slocie
+      shown.add(slotKey);
       const wrap=document.getElementById('timetable-wrapper');
       if(!wrap)return;
       const cell=wrap.querySelector(`.cell[data-day="${d}"][data-hour="${h}"]`);
