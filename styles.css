@@ -684,7 +684,53 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   box-shadow: var(--shadow);
+  flex: 1;
+  min-width: 0;
 }
+.sp-timetable-layout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.sp-pool {
+  width: 190px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  min-height: 200px;
+}
+.sp-pool-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.sp-pool-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  border-radius: var(--r);
+  cursor: grab;
+  font-size: 12px;
+  margin-bottom: 3px;
+  background: #fff;
+  border: 1px solid var(--border);
+  transition: background .1s;
+}
+.sp-pool-item:hover { background: var(--accent-dim); }
+.sp-pool-item.done { opacity: .5; }
+.sp-pool-item .pool-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.sp-pool-item .pool-subj { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-pool-item .pool-count { font-family: var(--mono); font-size: 10px; background: var(--bg4); padding: 1px 4px; border-radius: 3px; flex-shrink: 0; }
+.sp-pool-empty { font-size: 12px; color: var(--text3); text-align: center; padding: 16px 8px; }
 .special-timetable {
   min-width: 620px;
 }
@@ -700,6 +746,11 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .sp-cls-hint{font-size:9px;font-weight:400;color:var(--text3);margin-left:4px;font-style:italic;}
 .sp-class-preview{cursor:pointer;border-style:dashed!important;}
 .sp-class-preview:hover{opacity:1!important;background:rgba(0,0,0,0.04)!important;}
+.sp-class-preview .lc-remove{display:none;}
+.sp-class-preview:hover .lc-remove{display:block;}
+.sp-cell-absent{background:repeating-linear-gradient(45deg,#fef2f2,#fef2f2 4px,#fff 4px,#fff 10px)!important;}
+.sp-absent-hint{font-size:10px;color:#dc2626;text-align:center;padding:4px;cursor:pointer;}
+.sp-absent-hint:hover{background:#fee2e2;border-radius:3px;}
   font-size: 11px;
   cursor: pointer;
   flex-shrink: 0;

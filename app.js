@@ -412,6 +412,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!S.specialStudents)S.specialStudents=[];
   if(!S.specialAssignments)S.specialAssignments=[];
   if(!S.specialLessons)S.specialLessons={};
+  if(!S.specialAbsences)S.specialAbsences={};
   renderAll();renderHours();applySettings();
   requestAnimationFrame(()=>switchDataTab('classes'));
   if(S.classes.length)setActiveClass(S.classes[0].id);
@@ -2369,6 +2370,8 @@ function specialEnsureState(){
   if(!S.specialStudents)S.specialStudents=[];
   if(!S.specialAssignments)S.specialAssignments=[];
   if(!S.specialLessons)S.specialLessons={};
+  if(!S.specialAbsences)S.specialAbsences={};
+  if(!S.specialAbsences)S.specialAbsences={}; // klucz: studentId|day|hour -> true
 }
 
 // ── Pomocniki ─────────────────────────────────────────────
@@ -2518,6 +2521,7 @@ function renderSpecialTimetable(studentId){
   if(!wrap)return;
   const s=getSpecialStudent(studentId);
   if(!s){wrap.innerHTML='';return;}
+  specialEnsureState();
   const specConf=detectSpecialConflicts();
   const isNI=s.type==='ni';
   const hasClass=isNI&&s.classId;
@@ -2528,7 +2532,7 @@ function renderSpecialTimetable(studentId){
       <span class="sp-leg sp-leg-class">📚 Plan klasy ${esc(cls?cls.name:'')}</span>
       <span class="sp-leg sp-leg-wc">✅ Z klasą</span>
       <span class="sp-leg sp-leg-ind">👤 Indywidualnie</span>
-      <span style="font-size:11px;color:var(--text3)">Kliknij szary kafelek klasy aby zaznaczyć "z klasą". Kliknij pustą komórkę aby dodać lekcję indywidualną.</span>
+      <span style="font-size:11px;color:var(--text3)">Kliknij szary kafelek → z klasą. Kliknij pustą komórkę lub przeciągnij z panelu → indywidualnie. ✕ na kafelku klasy = nieobecny.</span>
     </div>`;
   } else {
     wrap.innerHTML='';
@@ -2547,24 +2551,42 @@ function renderSpecialTimetable(studentId){
       const td=tr.insertCell();
       td.dataset.day=di;td.dataset.hour=hi;td.dataset.studentId=studentId;
       const specLessons=getSpecialLessonsAt(studentId,di,hi);
+      const absentKey=studentId+'|'+di+'|'+hi;
+      const isAbsent=!!(S.specialAbsences&&S.specialAbsences[absentKey]);
 
       if(hasClass){
         const classLessons=getLessonsAt(s.classId,di,hi);
         const hasClassLesson=classLessons.length>0;
         const hasSpecLesson=specLessons.length>0;
-        if(hasClassLesson&&!hasSpecLesson){
-          td.className='cell sp-cell-class';
-          classLessons.forEach(l=>{
-            const card=buildClassPreviewCard(l,s,di,hi);
-            if(card)td.appendChild(card);
-          });
-        } else if(hasSpecLesson){
+
+        if(hasSpecLesson){
+          // Zaznaczone lub indywidualne
           td.className='cell';
           specLessons.forEach(l=>{
             const card=buildSpecialCard(l,specConf.has(l.key));
             if(card)td.appendChild(card);
           });
+        } else if(isAbsent&&hasClassLesson){
+          // Nieobecny na lekcji klasy — czerwone kreski
+          td.className='cell sp-cell-absent';
+          const hint=document.createElement('div');
+          hint.className='sp-absent-hint';
+          hint.title='Kliknij aby przywrócić lekcję klasy';
+          hint.textContent='✕ nieobecny';
+          hint.addEventListener('click',()=>{
+            delete S.specialAbsences[absentKey];
+            saveState();renderSpecialTimetable(studentId);
+          });
+          td.appendChild(hint);
+        } else if(hasClassLesson){
+          // Kafelek klasy — można zaznaczyć "z klasą" lub usunąć
+          td.className='cell sp-cell-class';
+          classLessons.forEach(l=>{
+            const card=buildClassPreviewCard(l,s,di,hi);
+            if(card)td.appendChild(card);
+          });
         } else {
+          // Pusty slot — przeciągnij lub kliknij
           td.className='cell sp-cell-empty';
           td.addEventListener('click',e=>{
             if(e.target.closest('.sp-card'))return;
@@ -2583,21 +2605,70 @@ function renderSpecialTimetable(studentId){
         });
       }
 
+      // Drop — przyjmuj przeciągnięte lekcje indywidualne z poolu
       td.addEventListener('dragover',e=>{e.preventDefault();td.classList.add('drag-over');});
       td.addEventListener('dragleave',()=>td.classList.remove('drag-over'));
       td.addEventListener('drop',e=>{
         e.preventDefault();td.classList.remove('drag-over');
-        if(!specialDragData)return;
-        const{fromKey,assignId}=specialDragData;
-        if(fromKey){const fp=fromKey.split('|');setSpecialLesson(fp[0],+fp[1],+fp[2],fp[3],true);}
-        setSpecialLesson(studentId,di,hi,assignId,false);
-        renderSpecialTimetable(studentId);
-        renderSpecialStudentList();
+        // Przeciągnięcie z poolu specjalnego
+        if(specialDragData&&specialDragData.type==='sp-pool'){
+          setSpecialLesson(studentId,di,hi,specialDragData.assignId,false);
+          specialDragData=null;
+          saveState();renderSpecialTimetable(studentId);renderSpecialStudentList();
+          renderSpecialPool(studentId);
+          return;
+        }
+        // Przeniesienie istniejącej karty specjalnej
+        if(specialDragData&&specialDragData.type==='special'){
+          const{fromKey,assignId}=specialDragData;
+          if(fromKey){const fp=fromKey.split('|');setSpecialLesson(fp[0],+fp[1],+fp[2],fp[3],true);}
+          setSpecialLesson(studentId,di,hi,assignId,false);
+          specialDragData=null;
+          saveState();renderSpecialTimetable(studentId);renderSpecialStudentList();
+          renderSpecialPool(studentId);
+        }
       });
     });
   });
   wrap.appendChild(tbl);
+  renderSpecialPool(studentId);
 }
+
+function renderSpecialPool(studentId){
+  const pool=document.getElementById('ssd-pool');
+  if(!pool)return;
+  specialEnsureState();
+  const asgn=(S.specialAssignments||[]).filter(a=>a.studentId===studentId&&!a.withClass);
+  const pc={};
+  Object.values(S.specialLessons||{}).forEach(l=>{pc[l.assignmentId]=(pc[l.assignmentId]||0)+1;});
+  pool.innerHTML='<div class="sp-pool-title">👤 Lekcje indywidualne</div>';
+  if(!asgn.length){
+    pool.innerHTML+='<div class="sp-pool-empty">Brak przypisań indywidualnych.<br>Kliknij "+ Dodaj godziny".</div>';
+    return;
+  }
+  asgn.forEach(a=>{
+    const subj=getSubject(a.subjectId),teacher=getTeacher(a.teacherId);
+    const color=subj&&subj.color?subj.color:'#94a3b8';
+    const p=pc[a.id]||0,n=a.hoursPerWeek||0;
+    const done=p>=n;
+    const item=document.createElement('div');
+    item.className='sp-pool-item'+(done?' done':'');
+    item.draggable=true;
+    item.dataset.assignId=a.id;
+    item.title=(subj?subj.name:'?')+' · '+(teacher?teacher.name:'brak')+' ('+p+'/'+n+' godz.)';
+    item.innerHTML=
+      `<span class="pool-dot" style="background:${color}"></span>`+
+      `<span class="pool-subj" style="color:${color}">${esc(subj?(subj.short||subj.name):'?')}</span>`+
+      `<span class="pool-count">${p}/${n}</span>`;
+    item.addEventListener('dragstart',e=>{
+      specialDragData={assignId:a.id,fromKey:null,type:'sp-pool'};
+      e.dataTransfer.effectAllowed='copy';
+      e.dataTransfer.setData('text/plain',a.id);
+    });
+    pool.appendChild(item);
+  });
+}
+
 
 function buildClassPreviewCard(classLesson,student,day,hour){
   const a=getAssign(classLesson.assignmentId);
@@ -2606,7 +2677,7 @@ function buildClassPreviewCard(classLesson,student,day,hour){
   const color=subj&&subj.color?subj.color:'#94a3b8';
   const div=document.createElement('div');
   div.className='lesson-card sp-class-preview';
-  div.title='Kliknij aby zaznaczyć jako \"z klasą\"';
+  div.title='Kliknij aby zaznaczyć jako "z klasą". ✕ = uczeń nieobecny na tej lekcji.';
   div.style.borderLeftColor=color;
   div.style.background=hexRgba(color,0.06);
   div.style.opacity='0.72';
@@ -2614,10 +2685,22 @@ function buildClassPreviewCard(classLesson,student,day,hour){
   const tname=teacher?(teacher.short||teacher.name.split(' ').pop()):'';
   const rname=room?(room.short||room.name):'';
   div.innerHTML=
-    `<div class="lc-subject" style="color:${color}">${esc(sname)}<span class="sp-card-tag sp-cls-hint">+ kliknij</span></div>`+
+    `<div class="lc-subject" style="color:${color}">${esc(sname)}<span class="sp-card-tag sp-cls-hint">→ z klasą</span></div>`+
     (tname?`<div class="lc-teacher">${esc(tname)}</div>`:'')+
-    (rname?`<div class="lc-room">${esc(rname)}</div>`:'');
+    (rname?`<div class="lc-room">${esc(rname)}</div>`:'')+
+    '<button class="lc-remove" title="Uczeń nieobecny na tej lekcji">✕</button>';
+  // Przycisk ✕ = oznacz jako nieobecny
+  div.querySelector('.lc-remove').addEventListener('click',e=>{
+    e.stopPropagation();
+    specialEnsureState();
+    const absentKey=student.id+'|'+day+'|'+hour;
+    S.specialAbsences[absentKey]=true;
+    saveState();
+    renderSpecialTimetable(student.id);
+  });
+  // Klik na kafelek = "z klasą"
   div.addEventListener('click',e=>{
+    if(e.target.classList.contains('lc-remove'))return;
     e.stopPropagation();
     openSpecialWithClassPicker(student,day,hour,a);
   });
