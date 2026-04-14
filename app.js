@@ -413,6 +413,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!S.specialAssignments)S.specialAssignments=[];
   if(!S.specialLessons)S.specialLessons={};
   if(!S.specialAbsences)S.specialAbsences={};
+  cleanupSpecialDuplicates();
   renderAll();renderHours();applySettings();
   requestAnimationFrame(()=>switchDataTab('classes'));
   if(S.classes.length)setActiveClass(S.classes[0].id);
@@ -2355,6 +2356,59 @@ function goHome() {
 }
 
 // NOTIFICATIONS
+// ── Diagnostyka i czyszczenie duplikatów w danych specjalnych ──
+function cleanupSpecialDuplicates(){
+  if(!S.specialLessons||!S.specialAssignments)return 0;
+  // Znajdź duplikaty: ten sam (studentId, day, hour) z różnymi assignmentId
+  const slotMap={}; // studentId|day|hour -> [klucze]
+  Object.keys(S.specialLessons).forEach(k=>{
+    const p=k.split('|');
+    const slot=p[0]+'|'+p[1]+'|'+p[2];
+    if(!slotMap[slot])slotMap[slot]=[];
+    slotMap[slot].push(k);
+  });
+  let removed=0;
+  Object.entries(slotMap).forEach(([slot,keys])=>{
+    if(keys.length<=1)return;
+    // Zostaw tylko klucz z przypisaniem "withClass:true" jeśli jest, albo pierwszy
+    const sorted=keys.sort((a,b)=>{
+      const aa=getSpecialAssign(S.specialLessons[a].assignmentId);
+      const bb=getSpecialAssign(S.specialLessons[b].assignmentId);
+      if(aa&&aa.withClass&&!(bb&&bb.withClass))return -1;
+      if(!(aa&&aa.withClass)&&bb&&bb.withClass)return 1;
+      return 0;
+    });
+    // Usuń duplikaty (zostaw pierwszy)
+    sorted.slice(1).forEach(k=>{
+      delete S.specialLessons[k];
+      removed++;
+    });
+  });
+  if(removed>0){saveState();console.log('Cleaned',removed,'duplicate special lessons');}
+  return removed;
+}
+
+function debugSpecialData(){
+  if(!S.specialLessons||!S.specialAssignments){alert('Brak danych specjalnych');return;}
+  const lessons=Object.entries(S.specialLessons);
+  // Znajdź duplikaty slotów
+  const slotMap={};
+  lessons.forEach(([k])=>{const p=k.split('|');const slot=p[0]+'|'+p[1]+'|'+p[2];slotMap[slot]=(slotMap[slot]||0)+1;});
+  const dups=Object.entries(slotMap).filter(([,c])=>c>1);
+  const msg=
+    `Uczniowie specjalni: ${(S.specialStudents||[]).length}\n`+
+    `Przypisania: ${(S.specialAssignments||[]).length} (withClass: ${(S.specialAssignments||[]).filter(a=>a.withClass).length})\n`+
+    `Lekcje specjalne: ${lessons.length}\n`+
+    `Duplikaty slotów (ten sam uczeń+godz): ${dups.length}\n`+
+    (dups.length?'\nDuplikaty:\n'+dups.map(([s,c])=>s+' x'+c).join('\n'):'')+
+    '\n\nKliknij OK aby automatycznie wyczyścić duplikaty.';
+  if(confirm(msg)){
+    const n=cleanupSpecialDuplicates();
+    alert(n>0?`Usunięto ${n} zduplikowanych wpisów.`:'Brak duplikatów do usunięcia.');
+    renderTimetable();
+  }
+}
+
 function notify(msg,type='info'){
   const el=document.createElement('div');el.className='notif '+type;el.textContent=msg;
   document.body.appendChild(el);
