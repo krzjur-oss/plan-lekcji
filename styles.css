@@ -753,6 +753,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .sp-cell-absent{background:repeating-linear-gradient(45deg,#fef2f2,#fef2f2 4px,#fff 4px,#fff 10px)!important;}
 .sp-absent-hint{font-size:10px;color:#dc2626;text-align:center;padding:4px;cursor:pointer;}
 .sp-absent-hint:hover{background:#fee2e2;border-radius:3px;}
+.sp-overlay-card {
   font-size: 11px;
   cursor: pointer;
   flex-shrink: 0;
