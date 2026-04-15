@@ -89,6 +89,8 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .cell.drag-over{background:#dbeafe;outline:2px dashed var(--accent);outline-offset:-2px}
 .cell.has-conflict{background:var(--red-dim)!important}
 .cell.has-special{height:auto;min-height:54px;display:flex;flex-direction:column;gap:2px;align-items:stretch;}
+/* W widoku nauczyciela specjalna karta jest jedyną zawartością — nie rozciągaj komórki */
+.cell.has-special.teacher-sp{height:54px;min-height:unset;overflow:hidden;}
 /* LESSON CARD */
 .lesson-card{border-radius:4px;padding:3px 5px;height:100%;min-height:48px;cursor:grab;position:relative;border-left:3px solid;transition:transform .1s,box-shadow .1s;overflow:hidden}
 .lesson-card.conflict{outline:2px solid #dc2626;outline-offset:-1px;}

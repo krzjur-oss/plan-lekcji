@@ -2968,7 +2968,7 @@ function injectSpecialIntoTimetable(){
       const cell=wrap.querySelector(`.cell[data-day="${d}"][data-hour="${h}"]`);
       if(!cell)return;
       const card=buildSpecialOverlayCard(a,s,k,specConf.has(k),false,isSupport);
-      if(card){cell.classList.add('has-special');cell.appendChild(card);}
+      if(card){cell.classList.add('has-special','teacher-sp');cell.appendChild(card);}
     });
   }
 }
