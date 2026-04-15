@@ -442,6 +442,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!S.specialLessons)S.specialLessons={};
   if(!S.specialAbsences)S.specialAbsences={};
   cleanupSpecialDuplicates();
+  migrateWithClassAssignments(); // scal stare per-slot withClass assignments
   renderAll();renderHours();applySettings();
   requestAnimationFrame(()=>switchDataTab('classes'));
   if(S.classes.length)setActiveClass(S.classes[0].id);
@@ -2438,6 +2439,37 @@ function cleanupSpecialDuplicates(){
   return removed;
 }
 
+// Migracja: scala stare przypisania "z klasą" (jedno per slot) w jedno współdzielone per przedmiot
+function migrateWithClassAssignments(){
+  specialEnsureState();
+  if(!S.specialAssignments||!S.specialLessons)return 0;
+  let merged=0;
+  const groups={};
+  S.specialAssignments.filter(a=>a.withClass).forEach(a=>{
+    const key=a.studentId+'|'+a.subjectId;
+    if(!groups[key])groups[key]=[];
+    groups[key].push(a);
+  });
+  Object.values(groups).forEach(group=>{
+    if(group.length<=1)return;
+    const keep=group[0];
+    const removeIds=new Set(group.slice(1).map(a=>a.id));
+    const allIds=new Set(group.map(a=>a.id));
+    let slotCount=0;
+    Object.entries(S.specialLessons).forEach(([k,l])=>{
+      if(allIds.has(l.assignmentId)){
+        slotCount++;
+        if(l.assignmentId!==keep.id)S.specialLessons[k]={assignmentId:keep.id};
+      }
+    });
+    keep.hoursPerWeek=slotCount;
+    S.specialAssignments=S.specialAssignments.filter(a=>!removeIds.has(a.id));
+    merged+=removeIds.size;
+  });
+  if(merged>0){saveState();console.log('Migrated',merged,'duplicate withClass assignments');}
+  return merged;
+}
+
 function debugSpecialData(){
   if(!S.specialLessons||!S.specialAssignments){alert('Brak danych specjalnych');return;}
   const lessons=Object.entries(S.specialLessons);
@@ -2461,11 +2493,14 @@ function debugSpecialData(){
     `Duplikaty slotów (ten sam uczeń+godz): ${dups.length}\n`+
     (dups.length?'\nDuplikaty:\n'+dups.map(([s,c])=>s+' x'+c).join('\n'):'')+
     '\n\nRaw keys (ostatnie 4 znaki ID):\n'+suspiciousKeys.slice(0,30).join('\n')+
-    '\n\nKliknij OK aby automatycznie wyczyścić duplikaty.';
+    '\n\nKliknij OK aby automatycznie wyczyścić duplikaty i scalić przypisania „z klasą".';
   if(confirm(msg)){
     const n=cleanupSpecialDuplicates();
-    alert(n>0?`Usunięto ${n} zduplikowanych wpisów.`:'Brak duplikatów do usunięcia.');
+    const m=migrateWithClassAssignments();
+    const total=n+m;
+    alert(total>0?`Usunięto/scalono ${total} wpisów (duplikaty: ${n}, scalenia „z klasą": ${m}).`:'Brak duplikatów do usunięcia.');
     renderTimetable();
+    if(window._specialActiveStudentId){renderSpecialAssignmentsList(window._specialActiveStudentId);renderSpecialTimetable(window._specialActiveStudentId);}
   }
 }
 
@@ -2824,16 +2859,24 @@ function buildClassPreviewCard(classLesson,student,day,hour){
 
 function openSpecialWithClassPicker(student,day,hour,classAssign){
   const subj=getSubject(classAssign.subjectId);
-  // Sprawdź czy ten slot jest już oznaczony "z klasą" — znajdź istniejące przypisanie
-  const existingLesson=getSpecialLessonsAt(student.id,day,hour)
+  specialEnsureState();
+
+  // Sprawdź czy ten konkretny slot jest już oznaczony "z klasą"
+  const slotLesson=getSpecialLessonsAt(student.id,day,hour)
     .map(l=>({l,a:getSpecialAssign(l.assignmentId)}))
     .find(({a})=>a&&a.withClass&&a.subjectId===classAssign.subjectId);
-  const existingAssign=existingLesson?existingLesson.a:null;
+  const slotAssign=slotLesson?slotLesson.a:null;
+
+  // Znajdź współdzielone przypisanie "z klasą" dla tego ucznia+przedmiotu (globalnie)
+  // Jedno przypisanie na cały przedmiot, nie per slot
+  const sharedAssign=slotAssign||(S.specialAssignments||[]).find(
+    a=>a.studentId===student.id&&a.withClass&&a.subjectId===classAssign.subjectId
+  )||null;
 
   const suppOpts='<option value="">— brak nauczyciela wspomagającego —</option>'+
-    alphaSort(S.teachers,'name').map(t=>`<option value="${t.id}" ${existingAssign&&existingAssign.supportTeacherId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
+    alphaSort(S.teachers,'name').map(t=>`<option value="${t.id}" ${sharedAssign&&sharedAssign.supportTeacherId===t.id?'selected':''}>${esc(t.name)}</option>`).join('');
   const roomOpts='<option value="">— ta sama sala co klasa —</option>'+
-    alphaSort(S.rooms,'name').map(r=>`<option value="${r.id}" ${existingAssign&&existingAssign.roomId===r.id?'selected':''}>${esc(r.name)}</option>`).join('');
+    alphaSort(S.rooms,'name').map(r=>`<option value="${r.id}" ${sharedAssign&&sharedAssign.roomId===r.id?'selected':''}>${esc(r.name)}</option>`).join('');
   openModal(`Lekcja z klasą — ${subj?esc(subj.name):'?'}`,`
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
       Uczeń <strong>${esc(student.lastName+' '+student.firstName)}</strong> będzie na tej lekcji z klasą.
@@ -2849,14 +2892,18 @@ function openSpecialWithClassPicker(student,day,hour,classAssign){
     const roomId=document.getElementById('swc-room').value||null;
     specialEnsureState();
 
-    if(existingAssign){
-      // Aktualizuj istniejące przypisanie dla tego slotu
-      existingAssign.supportTeacherId=suppId;
-      if(roomId)existingAssign.roomId=roomId;
-      // Klucz lekcji już istnieje — nie trzeba go ponownie ustawiać
+    if(slotAssign){
+      // Ten slot już jest oznaczony — tylko aktualizuj nauczyciela wspomagającego i salę
+      sharedAssign.supportTeacherId=suppId;
+      if(roomId)sharedAssign.roomId=roomId;
+    } else if(sharedAssign){
+      // Istnieje już przypisanie dla tego przedmiotu — dodaj nowy slot do tego samego przypisania
+      sharedAssign.supportTeacherId=suppId;
+      if(roomId)sharedAssign.roomId=roomId;
+      sharedAssign.hoursPerWeek=(sharedAssign.hoursPerWeek||0)+1;
+      setSpecialLesson(student.id,day,hour,sharedAssign.id,false);
     } else {
-      // Utwórz nowe przypisanie specyficzne dla tego slotu
-      // (jedno przypisanie per slot, nie współdzielone między slotami)
+      // Pierwsze "z klasą" dla tego przedmiotu — utwórz jedno współdzielone przypisanie
       const asgn={
         id:uid(),studentId:student.id,subjectId:classAssign.subjectId,
         teacherId:classAssign.teacherId,supportTeacherId:suppId,
