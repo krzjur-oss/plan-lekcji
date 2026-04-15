@@ -99,7 +99,20 @@ function getLessonsAt(c,d,h){
     .map(([k,v])=>({key:k,groupId:k.split('|')[3]||null,...v}));
 }
 function placedCount(){const m={};for(const l of Object.values(S.lessons))m[l.assignmentId]=(m[l.assignmentId]||0)+1;return m;}
-function teacherLoad(){const m={};for(const l of Object.values(S.lessons)){const a=getAssign(l.assignmentId);if(a&&a.teacherId)m[a.teacherId]=(m[a.teacherId]||0)+1;}return m;}
+function teacherLoad(){
+  const m={};
+  // Regularne lekcje
+  for(const l of Object.values(S.lessons)){const a=getAssign(l.assignmentId);if(a&&a.teacherId)m[a.teacherId]=(m[a.teacherId]||0)+1;}
+  // Lekcje specjalne — prowadzący i nauczyciel wspomagający
+  if(S.specialLessons&&S.specialAssignments){
+    for(const l of Object.values(S.specialLessons)){
+      const a=(S.specialAssignments||[]).find(x=>x.id===l.assignmentId);if(!a)continue;
+      if(a.teacherId)m[a.teacherId]=(m[a.teacherId]||0)+1;
+      if(a.supportTeacherId&&a.supportTeacherId!==a.teacherId)m[a.supportTeacherId]=(m[a.supportTeacherId]||0)+1;
+    }
+  }
+  return m;
+}
 function detectConflicts(){
   const seen={},conf=new Set();
   for(const[k,l]of Object.entries(S.lessons)){
@@ -2148,6 +2161,7 @@ function buildPlachtaBlock(entity, days, conf) {
         const cards = lessons.map(l => buildPhCard(getAssign(l.assignmentId), l, conf.has(l.key))).join('');
         return `<td class="ph-cell"><div class="ph-multi">${cards}</div></td>`;
       } else if (isTeacher) {
+        // Regularne lekcje
         for (const c of S.classes) {
           const lessons = getLessonsAt(c.id, di, hi);
           for (const l of lessons) {
@@ -2156,6 +2170,32 @@ function buildPlachtaBlock(entity, days, conf) {
               const hasConf = conf.has(l.key);
               return `<td class="ph-cell${hasConf?' ph-conflict':''}">${buildPhCard(a, l, hasConf, c.name)}</td>`;
             }
+          }
+        }
+        // Lekcje specjalne (indywidualne / wspomaganie)
+        if (S.specialLessons && S.specialAssignments) {
+          const specEntries = Object.entries(S.specialLessons).filter(([k]) => {
+            const p = k.split('|');
+            return +p[1] === di && +p[2] === hi;
+          });
+          for (const [k, l] of specEntries) {
+            const a = (S.specialAssignments||[]).find(x => x.id === l.assignmentId);
+            if (!a) continue;
+            const isMain = a.teacherId === entity.id;
+            const isSupp = a.supportTeacherId === entity.id;
+            if (!isMain && !isSupp) continue;
+            const student = (S.specialStudents||[]).find(s => s.id === a.studentId);
+            const subj = getSubject(a.subjectId);
+            const sname = subj ? (subj.short || subj.name) : '?';
+            const stName = student ? student.lastName + ' ' + student.firstName[0] + '.' : '?';
+            const color = isSupp ? '#7c3aed' : (subj && subj.color ? subj.color : '#059669');
+            const tag = isSupp
+              ? `<span style="font-size:9px;background:#7c3aed;color:#fff;border-radius:3px;padding:0 3px">wsp</span>`
+              : `<span style="font-size:9px;background:#059669;color:#fff;border-radius:3px;padding:0 3px">NI</span>`;
+            return `<td class="ph-cell"><div class="ph-card" style="border-left:3px solid ${color};background:${hexRgba(color,0.08)}">
+              <div class="ph-subj" style="color:${color}">${esc(sname)} ${tag}</div>
+              <div class="ph-teacher">${esc(stName)}</div>
+            </div></td>`;
           }
         }
         return `<td class="ph-cell ph-empty"></td>`;
@@ -3044,10 +3084,10 @@ function injectSpecialIntoTimetable(){
   if(!S.specialLessons)return;
   const specConf=detectSpecialConflicts();
   if(activeView==='teacher'&&activeViewId){
-    // Deduplikuj po komórce DOM (day|hour) — jedna karta na komórkę
-    // Jeśli nauczyciel wspomagający obsługuje wielu uczniów w tej samej godzinie,
-    // pokazujemy tylko pierwszą kartę (komórka ma stały rozmiar 54px)
-    const usedCells=new Set();
+    // usedCells: day|hour → Set of studentIds already shown
+    // Jeden nauczyciel może wspomagać wielu uczniów w tej samej godzinie,
+    // ale dla każdego ucznia pokazujemy tylko jedną kartę per komórka
+    const shownStudentsPerCell={};
     const entries=Object.entries(S.specialLessons).sort((a,b)=>a[0].localeCompare(b[0]));
     for(const[k,l]of entries){
       const a=getSpecialAssign(l.assignmentId);if(!a)continue;
@@ -3060,11 +3100,13 @@ function injectSpecialIntoTimetable(){
       const p=k.split('|');
       const d=p[1],h=p[2];
       const cellKey=d+'|'+h;
-      if(usedCells.has(cellKey))continue;
+      // Jeden wpis per uczeń per komórka (zapobiega duplikatom z shared assignment)
+      if(!shownStudentsPerCell[cellKey])shownStudentsPerCell[cellKey]=new Set();
+      if(shownStudentsPerCell[cellKey].has(a.studentId))continue;
+      shownStudentsPerCell[cellKey].add(a.studentId);
       const wrap=document.getElementById('timetable-wrapper');if(!wrap)continue;
       const cell=wrap.querySelector(`.cell[data-day="${d}"][data-hour="${h}"]`);
       if(!cell)continue;
-      usedCells.add(cellKey);
       const card=buildSpecialOverlayCard(a,s,k,specConf.has(k),false,isSupport);
       if(card){cell.classList.add('has-special','teacher-sp');cell.appendChild(card);}
     }
