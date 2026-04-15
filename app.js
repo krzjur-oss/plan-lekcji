@@ -21,8 +21,36 @@ let S={
   lessons:{}        // key classId|day|hour -> {assignmentId} OR dla grup: classId|day|hour|groupId
 };
 // ═══ PERSISTENCE ═══
-function saveState(){S.meta.modifiedAt=new Date().toISOString();try{localStorage.setItem(DB_KEY,JSON.stringify(S));}catch(e){console.warn(e);}}
-function loadState(){try{const r=localStorage.getItem(DB_KEY);if(r){const d=JSON.parse(r);Object.assign(S,d);}}catch(e){console.warn(e);}}
+function saveState(){
+  S.meta.modifiedAt=new Date().toISOString();
+  try{
+    localStorage.setItem(DB_KEY,JSON.stringify(S));
+  }catch(e){
+    console.warn('Błąd zapisu do localStorage:',e);
+    if(e.name==='QuotaExceededError'){
+      notify('Błąd: Przekroczono limit miejsca w localStorage. Wyeksportuj dane i wyczyść przeglądarkę.','error');
+    }else{
+      notify('Błąd zapisu danych. Sprawdź ustawienia przeglądarki.','error');
+    }
+  }
+}
+function loadState(){
+  try{
+    const r=localStorage.getItem(DB_KEY);
+    if(r){
+      const d=JSON.parse(r);
+      if(d && typeof d==='object'){
+        Object.assign(S,d);
+        console.log('Dane wczytane pomyślnie');
+      }else{
+        console.warn('Uszkodzone dane w localStorage - resetowanie');
+      }
+    }
+  }catch(e){
+    console.warn('Błąd wczytywania danych z localStorage:',e);
+    notify('Błąd wczytywania danych. Dane mogą być uszkodzone.','error');
+  }
+}
 // ═══ HELPERS ═══
 function uid(){
   if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID().replace(/-/g,'');
@@ -1263,10 +1291,31 @@ function showImportExport(){
     dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-on');const f=e.dataTransfer.files[0];if(f)readFile(f);});
   },50);
 }
-function doImport(e){const f=e.target.files[0];if(f)readFile(f);}
+function doImport(e){
+  const f=e?.target?.files?.[0];
+  if(!f){notify('Nie wybrano pliku','error');return;}
+  readFile(f);
+}
 function readFile(file){
+  if(!file){notify('Nie wybrano pliku','error');return;}
+  if(!file.name.endsWith('.json')){notify('Wybierz plik JSON','error');return;}
   const r=new FileReader();
-  r.onload=e=>{const res=importJSON(e.target.result);closeModal();if(res.ok){renderAll();if(currentTab!=='data')switchTab('data');else switchDataTab('classes');notify(res.msg||'Zaimportowano ✓ — dane widoczne w zakładce Dane','success');}else notify('Błąd importu: '+res.error,'error');};
+  r.onerror=()=>{notify('Błąd odczytu pliku','error');};
+  r.onload=e=>{
+    try{
+      const res=importJSON(e.target.result);
+      closeModal();
+      if(res.ok){
+        renderAll();
+        if(currentTab!=='data')switchTab('data');else switchDataTab('classes');
+        notify(res.msg||'Zaimportowano ✓ — dane widoczne w zakładce Dane','success');
+      }else{
+        notify('Błąd importu: '+res.error,'error');
+      }
+    }catch(err){
+      notify('Błąd przetwarzania pliku: '+err.message,'error');
+    }
+  };
   r.readAsText(file);
 }
 function importJSON(text){
@@ -2000,9 +2049,8 @@ function wizDraftDiscard() {
 }
 
 // ── HELPER ───────────────────────────────────────────────
-function escH(str) {
-  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+// escH jest aliasem do esc - używamy jednej funkcji do escape'owania HTML
+const escH = esc;
 
 // ── PŁACHTA ─────────────────────────────────────────────
 let plachtaMode = 'class'; // 'class' | 'teacher' | 'room'
@@ -2155,7 +2203,9 @@ function buildPhCard(assign, lesson, isConf, extraLabel) {
   const sname = subj ? (subj.short || subj.name) : '?';
   const tname = teacher ? (teacher.short || teacher.name.split(' ').pop()) : '';
   const rname = room ? (room.short || room.name) : '';
-  const glabel = lesson && lesson.groupId ? (() => { const g = getSchoolGroup(lesson.groupId); return g ? g.name : ''; })() : '';
+  // Używamy groupId z assign (nadrzędnie) lub z lesson dla kompatybilności
+  const groupId = assign.groupId || (lesson && lesson.groupId) || null;
+  const glabel = groupId ? (() => { const g = getSchoolGroup(groupId); return g ? g.name : ''; })() : '';
   const groupHtml = glabel ? `<div class="ph-g" style="background:${color};color:#fff">${esc(glabel)}</div>` : '';
   const extraHtml = extraLabel ? `<span style="color:var(--text3);font-weight:400;font-size:9px">[${esc(extraLabel)}] </span>` : '';
   return `<div class="ph-card" style="border-left-color:${color};background:${hexRgba(color,0.08)}">
@@ -2445,6 +2495,7 @@ function getSpecialAssign(id){return(S.specialAssignments||[]).find(a=>a.id===id
 const SPECIAL_TYPES={
   ni:  {label:'NI',        long:'Nauczanie indywidualne', color:'#7c3aed'},
   rewa:{label:'Rewa',      long:'Rewalidacja',            color:'#0891b2'},
+  wsp: {label:'Wsp',       long:'Wspomaganie',            color:'#059669'},
 };
 
 function specialTypeLabel(type){
@@ -3021,7 +3072,7 @@ function modalSpecialStudent(id){
       <select id="ss-cls" class="form-select"><option value="">— brak klasy —</option>${classOpts}</select>
     </div>
     <div class="form-group"><label class="form-label">Uwagi</label>
-      <input id="ss-note" class="form-input" placeholder="np. orzeczenie nr …" value="${esc(s&&s.note?s.note:[].join(''))}">
+      <input id="ss-note" class="form-input" placeholder="np. orzeczenie nr …" value="${esc(s&&s.note?s.note:'')}">
     </div>`,
   ()=>{
     const first=document.getElementById('ss-first').value.trim();

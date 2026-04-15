@@ -15,7 +15,12 @@ const ASSETS = [
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(cache => Promise.allSettled(ASSETS.map(url => cache.add(url))))
+      .then(cache => Promise.allSettled(ASSETS.map(url =>
+        cache.add(url).catch(err => {
+          console.warn('Nie udało się cacheować:', url, err);
+          return null;
+        })
+      )))
       .then(() => self.skipWaiting())
   );
 });
