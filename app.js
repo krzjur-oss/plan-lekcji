@@ -2945,31 +2945,31 @@ function injectSpecialIntoTimetable(){
   specialEnsureState();
   if(!S.specialLessons)return;
   const specConf=detectSpecialConflicts();
-  // Plan nauczyciela — pokaż tylko lekcje gdzie nauczyciel jest WSPOMAGAJĄCYM
-  // Lekcje gdzie jest prowadzącym (teacherId) są już widoczne w głównym planie klasy
   if(activeView==='teacher'&&activeViewId){
-    const shown=new Set(); // klucz: studentId|day|hour
-    Object.entries(S.specialLessons).forEach(([k,l])=>{
-      const a=getSpecialAssign(l.assignmentId);if(!a)return;
-      // Pokaż tylko jeśli nauczyciel jest wspomagającym
-      // LUB jeśli jest prowadzącym lekcji INDYWIDUALNEJ (nie withClass - bo withClass widać w planie klasy)
+    // Deduplikuj po komórce DOM (day|hour) — jedna karta na komórkę
+    // Jeśli nauczyciel wspomagający obsługuje wielu uczniów w tej samej godzinie,
+    // pokazujemy tylko pierwszą kartę (komórka ma stały rozmiar 54px)
+    const usedCells=new Set();
+    const entries=Object.entries(S.specialLessons).sort((a,b)=>a[0].localeCompare(b[0]));
+    for(const[k,l]of entries){
+      const a=getSpecialAssign(l.assignmentId);if(!a)continue;
       const isSupport=a.supportTeacherId===activeViewId;
       const isMainTeacher=a.teacherId===activeViewId;
-      if(!isSupport&&!isMainTeacher)return;
+      if(!isSupport&&!isMainTeacher)continue;
       // Pomiń lekcje "z klasą" gdzie nauczyciel jest tylko prowadzącym (widoczne w planie klasy)
-      if(a.withClass&&isMainTeacher&&!isSupport)return;
-      const s=getSpecialStudent(a.studentId);if(!s)return;
-      const p=k.split('|');const[sid,d,h]=p;
-      const slotKey=sid+'|'+d+'|'+h;
-      if(shown.has(slotKey))return;
-      shown.add(slotKey);
-      const wrap=document.getElementById('timetable-wrapper');
-      if(!wrap)return;
+      if(a.withClass&&isMainTeacher&&!isSupport)continue;
+      const s=getSpecialStudent(a.studentId);if(!s)continue;
+      const p=k.split('|');
+      const d=p[1],h=p[2];
+      const cellKey=d+'|'+h;
+      if(usedCells.has(cellKey))continue;
+      const wrap=document.getElementById('timetable-wrapper');if(!wrap)continue;
       const cell=wrap.querySelector(`.cell[data-day="${d}"][data-hour="${h}"]`);
-      if(!cell)return;
+      if(!cell)continue;
+      usedCells.add(cellKey);
       const card=buildSpecialOverlayCard(a,s,k,specConf.has(k),false,isSupport);
       if(card){cell.classList.add('has-special','teacher-sp');cell.appendChild(card);}
-    });
+    }
   }
 }
 
